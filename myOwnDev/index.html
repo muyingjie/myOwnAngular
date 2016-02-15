@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title></title>
+    <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        $(function () {
+            var scope = new Scope();
+
+            (function () {
+                scope.counter = 0;
+
+                scope.$watch(
+                    function (scope) { return scope.someValue; },
+                    function (newValue, oldValue, scope) { scope.counter++; }
+                );
+
+                scope.$digest();
+                console.log(scope.counter === 1);
+            })();
+            console.log("calls listener with new value as old value the first time");
+            (function () {
+                scope.someValue = 123;
+                var oldValueGiven;
+
+                scope.$watch(
+                    function (scope) { return scope.someValue; },
+                    function (newValue, oldValue, scope) { oldValueGiven = oldValue; }
+                );
+
+                scope.$digest();
+                console.log(oldValueGiven === 123);
+            })();
+            console.log("Keep Digesting While Dirty");
+            console.log("triggers chained watchers in the same digest");
+            (function () {
+                scope.name = "Jane";
+                scope.$watch(
+                    function (scope) { return scope.nameUpper; },
+                    function (newValue, oldValue, scope) {
+                        if (newValue) {
+                            scope.initial = newValue.substring(0, 1) + ".";
+                        }
+                    }
+                );
+                scope.$watch(
+                    function (scope) { return scope.name; },
+                    function (newValue, oldValue, scope) {
+                        if (newValue) {
+                            scope.nameUpper = newValue.toUpperCase();
+                        }
+                    }
+                );
+                scope.$digest();
+                console.log(scope.initial === "J.");
+
+                scope.name = "Bob";
+                scope.$digest();
+                console.log(scope.initial === "B.");
+            })();
+            console.log("Giving Up On An Unstable Digest");
+            /*(function () {
+                scope.counterA = 0;
+                scope.counterB = 0;
+                scope.$watch(
+                    function (scope) { return scope.counterA; },
+                    function (newValue, oldValue, scope) {
+                        scope.counterB++;
+                    }
+                );
+                scope.$watch(
+                    function (scope) { return scope.counterB; },
+                    function (newValue, oldValue, scope) {
+                        scope.counterA++;
+                    }
+                );
+                //如果不做任何处理，这种情况就会变成死循环，所以需要设置一个最大循环次数，angular内部默认设置为10
+                scope.$digest();
+                console.log(scope.counterA);
+            })();*/
+            console.log("Short-Circuiting The Digest When The Last Watch Is Clean");
+            console.log("ends the digest when the last watch is clean");
+            (function () {
+                scope.array = _.range(100);
+                var watchExecutions = 0;
+                _.times(100, function (i) {
+                    scope.$watch(
+                        function (scope) {
+                            watchExecutions++;
+                            return scope.array[i];
+                        },
+                        function (newValue, oldValue, scope) {
+                        }
+                    );
+                });
+                scope.$digest();
+                console.log(watchExecutions === 200);
+
+                scope.array[0] = 420;
+                scope.$digest();
+                console.log(watchExecutions === 301);
+            })();
+            console.log("doesn't end digest so that new watches are not run");
+            (function () {
+                //执行完第一个scope.$watch之后当前scope实例的$$watchers队列中只有一个watcher
+                //此时马上执行$digest，遍历$$watchers的时候$$lastDirtyWatch就指向第一个watcher实例
+                //再执行第一个watcher的监听函数，监听函数里又加了一个watcher
+                //由于$$digestOnce中dirty一定是true，所以会再次执行$$digestOnce
+                //而本次执行过程 虽然$$watchers有两个watcher，但是在遍历第一个的时候
+                //newValue和oldValue是相同的，所以检测else if分支
+                //else if分支明显满足self.$$lastDirtyWatch === watcher的条件
+                //所以直接return回去false，$digest中的循环终止
+                //第二个watcher永远不会被遍历到，所以scope.counter一直是0
+                scope.aValue = "abc";
+                scope.counter = 0;
+                scope.$watch(
+                    function (scope) { return scope.aValue;},
+                    function (newValue, oldValue, scope) {
+                        scope.$watch(
+                            function (scope) { return scope.aValue; },
+                            function (newValue, oldValue, scope) {
+                                scope.counter++;
+                            }
+                        );
+                    }
+                );
+                scope.$digest();
+                console.log(scope.counter === 1);
+            })();
+        });
+    </script>
+</head>
+<body></body>
+</html>
