@@ -10,10 +10,11 @@ Scope.prototype.$watch=function(watchFn,listenerFn){
 	};
 	this.$$watchers.push(watcher);
 };
-Scope.prototype.$digest=function(){
+Scope.prototype.$$digestOnce=function(){
 	var self=this;
 	var newValue;
 	var oldValue;
+	var dirty;
 	var watcher;
 	for(var i=0;i<this.$$watchers.length;i++){
 		watcher=this.$$watchers[i];
@@ -28,8 +29,17 @@ Scope.prototype.$digest=function(){
 				oldValue === initWatchVal ? newValue : oldValue,
 				self
 			);
+			
+			dirty=true;
 		}
 	}
+	return dirty;
+};
+Scope.prototype.$digest = function(){
+	var dirty;
+	do{
+		dirty=this.$$digestOnce();
+	}while(dirty);
 };
 
 function initWatchVal(){}
