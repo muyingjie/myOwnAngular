@@ -286,28 +286,141 @@
             console.log("Scope Phases");
             console.log("has a $$phase field whose value is the current digest phase");
             (function () {
-                scope.aValue = [1, 2, 3];
-                scope.phaseInWatchFunction = undefined;
-                scope.phaseInListenerFunction = undefined;
-                scope.phaseInApplyFunction = undefined;
+                //scope.aValue = [1, 2, 3];
+                //scope.phaseInWatchFunction = undefined;
+                //scope.phaseInListenerFunction = undefined;
+                //scope.phaseInApplyFunction = undefined;
+
+                //scope.$watch(
+                //    function (scope) {
+                //        scope.phaseInWatchFunction = scope.$$phase;
+                //        return scope.aValue;
+                //    },
+                //    function (newValue, oldValue, scope) {
+                //        scope.phaseInListenerFunction = scope.$$phase;
+                //    }
+                //);
+
+                //scope.$apply(function (scope) {
+                //    scope.phaseInApplyFunction = scope.$$phase;
+                //});
+
+                //console.log(scope.phaseInWatchFunction === "$digest");
+                //console.log(scope.phaseInListenerFunction === "$digest");
+                //console.log(scope.phaseInApplyFunction === "$apply");
+            })();
+            console.log("schedule a digest in $evalAsync");
+            (function () {
+                //scope.aValue = "abc";
+                //scope.counter = 0;
+
+                //scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        scope.counter++;
+                //    }
+                //);
+
+                //scope.$evalAsync(function (scope) { });
+
+                //console.log(scope.counter === 0);
+                //setTimeout(function () {
+                //    console.log(scope.counter === 1);
+                //}, 50);
+            })();
+            console.log("Coalescing $apply Invocations-$applyAsync");
+            console.log("allows async $apply with $applyAsync");
+            (function () {
+                //scope.counter = 0;
+
+                //scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        scope.counter++;
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(scope.counter === 1);
+
+                //scope.$applyAsync(function (scope) {
+                //    scope.aValue = "abc";
+                //});
+                //console.log(scope.counter === 1);
+
+                //setTimeout(function () {
+                //    console.log(scope.counter === 2);
+                //}, 50);
+            })();
+            console.log("never executes $applyAsync'ed function in the same cycle");
+            (function () {
+                //scope.aValue = [1, 2, 3];
+                //scope.asyncApplied = false;
+
+                //scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        scope.$applyAsync(function (scope) {
+                //            scope.asyncApplied = true;
+                //        });
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(scope.asyncApplied === false);
+                //setTimeout(function () {
+                //    console.log(scope.asyncApplied === true);
+                //}, 50);
+            })();
+            console.log("coalesces many calls to $applyAsync");
+            (function () {
+                //scope.counter = 0;
+
+                //scope.$watch(
+                //    function () {
+                //        scope.counter++;
+                //        return scope.aValue;
+                //    },
+                //    function (newValue, oldValue, scope) { }
+                //);
+
+                //scope.$applyAsync(function (scope) {
+                //    scope.aValue = "abc";
+                //});
+                //scope.$applyAsync(function (scope) {
+                //    scope.aValue = "def";
+                //});
+
+                //setTimeout(function () {
+                //    console.log(scope.counter === 2);
+                //}, 50);
+            })();
+            console.log("cancels and flushes $applyAsync if digested first");
+            (function () {
+                scope.counter = 0;
 
                 scope.$watch(
                     function (scope) {
-                        scope.phaseInWatchFunction = scope.$$phase;
+                        scope.counter++;
                         return scope.aValue;
                     },
-                    function (newValue, oldValue, scope) {
-                        scope.phaseInListenerFunction = scope.$$phase;
-                    }
+                    function (newValue, oldValue, scope) { }
                 );
 
-                scope.$apply(function (scope) {
-                    scope.phaseInApplyFunction = scope.$$phase;
+                scope.$applyAsync(function (scope) {
+                    scope.aValue = "abc";
+                });
+                scope.$applyAsync(function (scope) {
+                    scope.aValue = "def";
                 });
 
-                console.log(scope.phaseInWatchFunction === "$digest");
-                console.log(scope.phaseInListenerFunction === "$digest");
-                console.log(scope.phaseInApplyFunction === "$apply");
+                scope.$digest();
+                console.log(scope.counter === 2);
+                console.log(scope.aValue === "def");
+
+                setTimeout(function () {
+                    console.log(scope.counter === 2);
+                }, 50);
             })();
         });
     </script>
