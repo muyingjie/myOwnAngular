@@ -397,30 +397,245 @@
             })();
             console.log("cancels and flushes $applyAsync if digested first");
             (function () {
+                //scope.counter = 0;
+
+                //scope.$watch(
+                //    function (scope) {
+                //        scope.counter++;
+                //        return scope.aValue;
+                //    },
+                //    function (newValue, oldValue, scope) { }
+                //);
+
+                //scope.$applyAsync(function (scope) {
+                //    scope.aValue = "abc";
+                //});
+                //scope.$applyAsync(function (scope) {
+                //    scope.aValue = "def";
+                //});
+
+                //scope.$digest();
+                //console.log(scope.counter === 2);
+                //console.log(scope.aValue === "def");
+
+                //setTimeout(function () {
+                //    console.log(scope.counter === 2);
+                //}, 50);
+            })();
+            console.log("Running Code After A Digest-$$postDigest");
+            console.log("runs a $$postDigest function after each digest");
+            (function () {
+                //scope.counter = 0;
+
+                //scope.$$postDigest(function () {
+                //    scope.counter++;
+                //});
+
+                //console.log(scope.counter === 0);
+
+                //scope.$digest();
+                //console.log(scope.counter === 1);
+
+                //scope.$digest();
+                //console.log(scope.counter === 1);
+            })();
+            console.log("doesn't include $$postDigest in the digest");
+            (function () {
+                //scope.aValue = "original value";
+
+                //scope.$$postDigest(function () {
+                //    scope.aValue = "changed value";
+                //});
+
+                //scope.$watch(
+                //    function (scope) {
+                //        return scope.aValue;
+                //    },
+                //    function (newValue, oldValue, scope) {
+                //        scope.watchedValue = newValue;
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(scope.watchedValue === "original value");
+
+                //scope.$digest();
+                //console.log(scope.watchedValue === "changed value");
+            })();
+            console.log("Handling Exceptions");
+            console.log("catches exceptions in watch function and continues");
+            (function () {
+                //scope.aValue = "abc";
+                //scope.counter = 0;
+
+                //scope.$watch(
+                //    function (scope) { throw "error"; },
+                //    function (newValue, oldValue, scope) { }
+                //);
+                //scope.$watch(
+                //    function () { return scope.aValue; },
+                //    function () {
+                //        scope.counter++;
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(scope.counter === 1);
+            })();
+            console.log("catches exceptions in listener functions and continues");
+            (function () {
+                //scope.aValue = "abc";
+                //scope.counter = 0;
+
+                //scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        throw "Error";
+                //    }
+                //);
+
+                //scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        scope.counter++;
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(scope.counter === 1);
+            })();
+            console.log("catches exceptions in $evalAsync");
+            (function () {
+                //scope.aValue = "abc";
+                //scope.counter = 0;
+
+                //scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        scope.counter++;
+                //    }
+                //);
+
+                //scope.$evalAsync(function (scope) {
+                //    throw "Error";
+                //});
+
+                //setTimeout(function () {
+                //    console.log(scope.counter === 1);
+                //}, 50);
+            })();
+            console.log("catches exceptions in $applyAsync");
+            (function () {
+                //scope.$applyAsync(function (scope) {
+                //    throw "Error";
+                //});
+                //scope.$applyAsync(function (scope) {
+                //    throw "Error";
+                //});
+                //scope.$applyAsync(function (scope) {
+                //    scope.applied = true;
+                //});
+
+                //setTimeout(function () {
+                //    console.log(scope.applied === true);
+                //}, 50);
+            })();
+            console.log("catches exceptions in $$postDigest");
+            (function () {
+                //var didRun = false;
+
+                //scope.$$postDigest(function () {
+                //    throw "Error";
+                //});
+                //scope.$$postDigest(function () {
+                //    didRun = true;
+                //});
+
+                //scope.$digest();
+                //console.log(didRun === true);
+            })();
+            console.log("Destroying A Watch");
+            (function () {
+                //scope.aValue = "abc";
+                //scope.counter = 0;
+
+                //var destroyWatch = scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        scope.counter++;
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(scope.counter === 1);
+
+                //scope.aValue = "def";
+                //scope.$digest();
+                //console.log(scope.counter === 2);
+
+                //scope.aValue = "ghi";
+                //destroyWatch();
+                //scope.$digest();
+                //console.log(scope.counter === 2);
+            })();
+            console.log("allows destroying a $watch during digest");
+            (function () {
+                //scope.aValue = "abc";
+
+                //var watchCalls = [];
+
+                //scope.$watch(
+                //    function (scope) {
+                //        watchCalls.push("first");
+                //        return scope.aValue;
+                //    }
+                //);
+
+                //var destroyWatch = scope.$watch(
+                //    function (scope) {
+                //        watchCalls.push("second");
+                //        destroyWatch();
+                //    }
+                //);
+
+                //scope.$watch(
+                //    function (scope) {
+                //        watchCalls.push("third");
+                //        return scope.aValue;
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(_.isEqual(watchCalls, ["first", "second", "third", "first", "third"]));
+            })();
+            console.log("allows a $watch to destroy another during digest");
+            (function () {
+                scope.aValue = "abc";
                 scope.counter = 0;
 
                 scope.$watch(
                     function (scope) {
-                        scope.counter++;
                         return scope.aValue;
                     },
+                    function (newValue, oldValue, scope) {
+                        destroyWatch();
+                    }
+                );
+
+                var destroyWatch = scope.$watch(
+                    function (scope) { },
                     function (newValue, oldValue, scope) { }
                 );
 
-                scope.$applyAsync(function (scope) {
-                    scope.aValue = "abc";
-                });
-                scope.$applyAsync(function (scope) {
-                    scope.aValue = "def";
-                });
+                scope.$watch(
+                    function (scope) { return scope.aValue; },
+                    function (newValue, oldValue, scope) {
+                        scope.counter++;
+                    }
+                );
 
                 scope.$digest();
-                console.log(scope.counter === 2);
-                console.log(scope.aValue === "def");
-
-                setTimeout(function () {
-                    console.log(scope.counter === 2);
-                }, 50);
+                console.log(scope.counter === 1);
             })();
         });
     </script>

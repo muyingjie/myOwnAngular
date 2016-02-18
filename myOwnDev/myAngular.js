@@ -6,39 +6,52 @@
         this.$$asyncQueue = [];
         this.$$applyAsyncQueue = [];
         this.$$applyAsyncId = null;
+        this.$$postDigestQueue = [];
         this.$$phase = null;
     }
     Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
+        var self = this;
         var watcher = {
             watchFn: watchFn,
             listenerFn: listenerFn || function () { },
             valueEq: !!valueEq,
             last: initWatchVal
         };
-        this.$$watchers.push(watcher);
+        this.$$watchers.unshift(watcher);
         this.$$lastDirtyWatch = null;
+        return function () {
+            var index = self.$$watchers.indexOf(watcher);
+            if (index >= 0) {
+                self.$$watchers.splice(index, 1);
+                self.$$lastDirtyWatch = null;
+            }
+        };
     };
     Scope.prototype.$$digestOnce = function () {
         var self = this;
         var newValue;
         var oldValue;
         var dirty;
-        _.forEach(this.$$watchers, function (watcher) {
-            newValue = watcher.watchFn(self);
-            oldValue = watcher.last;
-            //if (newValue !== oldValue) {
-            if (!self.$$areEqual(newValue, oldValue, watcher.valueEq)) {
-                self.$$lastDirtyWatch = watcher;
-                //watcher.last = newValue;
-                watcher.last = watcher.valueEq ? _.cloneDeep(newValue) : newValue;
-                watcher.listenerFn(
-                    newValue,
-                    (oldValue == initWatchVal ? newValue : oldValue),
-                    self
-                );
-                dirty = true;
-            } else if (self.$$lastDirtyWatch === watcher) {
-                return false;
+        _.forEachRight(this.$$watchers, function (watcher) {
+            try {
+                newValue = watcher.watchFn(self);
+                oldValue = watcher.last;
+                //if (newValue !== oldValue) {
+                if (!self.$$areEqual(newValue, oldValue, watcher.valueEq)) {
+                    self.$$lastDirtyWatch = watcher;
+                    //watcher.last = newValue;
+                    watcher.last = watcher.valueEq ? _.cloneDeep(newValue) : newValue;
+                    watcher.listenerFn(
+                        newValue,
+                        (oldValue == initWatchVal ? newValue : oldValue),
+                        self
+                    );
+                    dirty = true;
+                } else if (self.$$lastDirtyWatch === watcher) {
+                    return false;
+                }
+            } catch (e) {
+                console.error(e);
             }
         });
         return dirty;
@@ -48,10 +61,20 @@
         var dirty;
         this.$$lastDirtyWatch = null;
         this.$beginPhase("$digest");
+
+        if (this.$$applyAsyncId) {
+            clearTimeout(this.$$applyAsyncId);
+            this.$$flushApplyAsync();
+        }
+
         do {
             while (this.$$asyncQueue.length) {
-                var asyncTask = this.$$asyncQueue.shift();
-                asyncTask.scope.$eval(asyncTask.expression);
+                try {
+                    var asyncTask = this.$$asyncQueue.shift();
+                    asyncTask.scope.$eval(asyncTask.expression);
+                } catch (e) {
+                    console.error(e);
+                }
             }
             dirty = this.$$digestOnce();
             if ((dirty || this.$$asyncQueue.length) && !(ttl--)) {
@@ -60,6 +83,14 @@
             }
         } while (dirty || this.$$asyncQueue.length);
         this.$clearPhase();
+
+        while (this.$$postDigestQueue.length) {
+            try {
+                this.$$postDigestQueue.shift()();
+            } catch (e) {
+                console.error(e);
+            }
+        }
     };
     Scope.prototype.$$areEqual = function (newValue, oldValue, valueEq) {
         if (valueEq) {
@@ -121,15 +152,23 @@
                 //    }
                 //    self.$$applyAsyncId = null;
                 //});
+                //_.bind() 第一个参数是要绑定的函数，第二个参数是函数里面的this指向
                 self.$apply(_.bind(self.$$flushApplyAsync, self));
             }, 0);
         }
     };
     Scope.prototype.$$flushApplyAsync = function () {
-        while (this.$$applyAsyncQueue) {
-            this.$$applyAsyncQueue.shift()();
+        while (this.$$applyAsyncQueue.length) {
+            try {
+                this.$$applyAsyncQueue.shift()();
+            } catch (e) {
+                console.error(e);
+            }
         }
         this.$$applyAsyncId = null;
+    };
+    Scope.prototype.$$postDigest = function (fn) {
+        this.$$postDigestQueue.push(fn);
     };
 
     function initWatchVal() { }
