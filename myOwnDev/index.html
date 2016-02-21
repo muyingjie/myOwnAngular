@@ -610,32 +610,75 @@
             })();
             console.log("allows a $watch to destroy another during digest");
             (function () {
-                scope.aValue = "abc";
-                scope.counter = 0;
+                //scope.aValue = "abc";
+                //scope.counter = 0;
 
-                scope.$watch(
-                    function (scope) {
-                        return scope.aValue;
-                    },
-                    function (newValue, oldValue, scope) {
-                        destroyWatch();
-                    }
-                );
+                //scope.$watch(
+                //    function (scope) {
+                //        return scope.aValue;
+                //    },
+                //    function (newValue, oldValue, scope) {
+                //        destroyWatch();
+                //    }
+                //);
 
-                var destroyWatch = scope.$watch(
-                    function (scope) { },
-                    function (newValue, oldValue, scope) { }
-                );
+                //var destroyWatch = scope.$watch(
+                //    function (scope) { },
+                //    function (newValue, oldValue, scope) { }
+                //);
 
-                scope.$watch(
+                //scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        scope.counter++;
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(scope.counter === 1);
+            })();
+            console.log("allow destroying several watches during digest");
+            (function () {
+                //scope.aValue = "abc";
+                //scope.counter = 0;
+
+                //var destroyWatch1 = scope.$watch(
+                //    function (scope) {
+                //        destroyWatch1();
+                //        destroyWatch2();
+                //    }
+                //);
+
+                //var destroyWatch2 = scope.$watch(
+                //    function (scope) { return scope.aValue; },
+                //    function (newValue, oldValue, scope) {
+                //        scope.counter++;
+                //    }
+                //);
+
+                //scope.$digest();
+                //console.log(scope.counter === 0);
+            })();
+            console.log("Watching Several Changes With One Listener:$watchGroup");
+            console.log("$watchGroup");
+            console.log("tasks watches as an array and calls listener with arrays");
+            (function () {
+                var gotNewValues;
+                var gotOldValues;
+
+                scope.aValue = 1;
+                scope.anotherValue = 2;
+
+                scope.$watchGroup([
                     function (scope) { return scope.aValue; },
-                    function (newValue, oldValue, scope) {
-                        scope.counter++;
-                    }
-                );
-
+                    function (scope) { return scope.anotherValue; }
+                ], function (newValues, oldValues, scope) {
+                    gotNewValues = newValues;
+                    gotOldValues = oldValues;
+                });
                 scope.$digest();
-                console.log(scope.counter === 1);
+                console.log(_.isEqual(gotNewValues, [1, 2]));
+                console.log(_.isEqual(gotOldValues, [1, 2]));
             })();
         });
     </script>

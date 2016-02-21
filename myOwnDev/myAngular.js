@@ -34,21 +34,23 @@
         var dirty;
         _.forEachRight(this.$$watchers, function (watcher) {
             try {
-                newValue = watcher.watchFn(self);
-                oldValue = watcher.last;
-                //if (newValue !== oldValue) {
-                if (!self.$$areEqual(newValue, oldValue, watcher.valueEq)) {
-                    self.$$lastDirtyWatch = watcher;
-                    //watcher.last = newValue;
-                    watcher.last = watcher.valueEq ? _.cloneDeep(newValue) : newValue;
-                    watcher.listenerFn(
-                        newValue,
-                        (oldValue == initWatchVal ? newValue : oldValue),
-                        self
-                    );
-                    dirty = true;
-                } else if (self.$$lastDirtyWatch === watcher) {
-                    return false;
+                if (watcher) {                
+                    newValue = watcher.watchFn(self);
+                    oldValue = watcher.last;
+                    //if (newValue !== oldValue) {
+                    if (!self.$$areEqual(newValue, oldValue, watcher.valueEq)) {
+                        self.$$lastDirtyWatch = watcher;
+                        //watcher.last = newValue;
+                        watcher.last = watcher.valueEq ? _.cloneDeep(newValue) : newValue;
+                        watcher.listenerFn(
+                            newValue,
+                            (oldValue == initWatchVal ? newValue : oldValue),
+                            self
+                        );
+                        dirty = true;
+                    } else if (self.$$lastDirtyWatch === watcher) {
+                        return false;
+                    }
                 }
             } catch (e) {
                 console.error(e);
@@ -170,6 +172,18 @@
     Scope.prototype.$$postDigest = function (fn) {
         this.$$postDigestQueue.push(fn);
     };
+	Scope.prototype.$watchGroup=function(watchFns,listenerFn){
+		var self=this;
+		var newValues=new Array(watchFns.length);
+		var oldValues=new Array(watchFns.length);
+		_.forEach(watchFns,function(watchFn,i){
+			self.$watch(watchFn,function(newValue,oldValue){
+				newValues[i]=newValue;
+				oldValues[i]=oldValue;
+				listenerFn(newValues,oldValues,self);
+			});
+		});
+	};
 
     function initWatchVal() { }
 
