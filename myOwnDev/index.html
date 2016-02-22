@@ -663,6 +663,42 @@
             console.log("$watchGroup");
             console.log("tasks watches as an array and calls listener with arrays");
             (function () {
+                //var gotNewValues;
+                //var gotOldValues;
+
+                //scope.aValue = 1;
+                //scope.anotherValue = 2;
+
+                //scope.$watchGroup([
+                //    function (scope) { return scope.aValue; },
+                //    function (scope) { return scope.anotherValue; }
+                //], function (newValues, oldValues, scope) {
+                //    gotNewValues = newValues;
+                //    gotOldValues = oldValues;
+                //});
+                //scope.$digest();
+                //console.log(_.isEqual(gotNewValues, [1, 2]));
+                //console.log(_.isEqual(gotOldValues, [1, 2]));
+            })();
+            console.log("only calls listener once per digest");
+            (function () {
+                //var counter = 0;
+
+                //scope.aValue = 1;
+                //scope.anotherValue = 2;
+
+                //scope.$watchGroup([
+                //    function (scope) { return scope.aValue; },
+                //    function (scope) { return scope.anotherValue; }
+                //], function (newValues, oldValues, scope) {
+                //    counter++;
+                //});
+                //scope.$digest();
+
+                //console.log(counter === 1);
+            })();
+            console.log("uses the same array of old and new values on first run");
+            (function () {
                 var gotNewValues;
                 var gotOldValues;
 
@@ -676,9 +712,9 @@
                     gotNewValues = newValues;
                     gotOldValues = oldValues;
                 });
+
                 scope.$digest();
-                console.log(_.isEqual(gotNewValues, [1, 2]));
-                console.log(_.isEqual(gotOldValues, [1, 2]));
+                console.log(gotNewValues === gotOldValues);
             })();
         });
     </script>
