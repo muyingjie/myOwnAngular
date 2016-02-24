@@ -23,6 +23,7 @@
             var index = self.$$watchers.indexOf(watcher);
             if (index >= 0) {
                 self.$$watchers.splice(index, 1);
+                //防止在$digestOnce中遍历所有的watcher时其中某一个watcher的listener中删掉其他watcher的情况
                 self.$$lastDirtyWatch = null;
             }
         };
@@ -34,6 +35,7 @@
         var dirty;
         _.forEachRight(this.$$watchers, function (watcher) {
             try {
+                //判断watcher是否存在是因为有可能在$digest循环watcher的过程中某一个watcher在其监听函数中会将所有的this.$$watchers里面所有的watcher全部删掉
                 if (watcher) {
                     newValue = watcher.watchFn(self);
                     oldValue = watcher.last;
@@ -127,8 +129,8 @@
                 }
             }, 0);
         }
-        this.$$asyncQueue.push({
-            scope: this,
+        self.$$asyncQueue.push({
+            scope: self,
             expression: expr
         });
     };
@@ -177,14 +179,32 @@
         var newValues = new Array(watchFns.length);
         var oldValues = new Array(watchFns.length);
         var changeReactionScheduled = false;
+        var firstRun = true;
+
+        if (watchFns.length === 0) {
+            var shouldCall = true;
+            self.$evalAsync(function () {
+                if (shouldCall) {
+                    listenerFn(newValues, newValues, self);
+                }
+            });
+            return function () {
+                shouldCall = false;
+            };
+        }
 
         function watchGroupListener() {
-            listenerFn(newValues, oldValues, self);
+            if (firstRun) {
+                firstRun = false;
+                listenerFn(newValues, newValues, self);
+            } else {
+                listenerFn(newValues, oldValues, self);
+            }
             changeReactionScheduled = false;
         }
 
-        _.forEach(watchFns, function (watchFn, i) {
-            self.$watch(watchFn, function (newValue, oldValue) {
+        var destroyFunctions = _.map(watchFns, function (watchFn, i) {
+            return self.$watch(watchFn, function (newValue, oldValue) {
                 newValues[i] = newValue;
                 oldValues[i] = oldValue;
                 if (!changeReactionScheduled) {
@@ -193,6 +213,12 @@
                 }
             });
         });
+
+        return function () {
+            _.forEach(destroyFunctions, function (destroyFunction) {
+                destroyFunction();
+            });
+        };
     };
 
     function initWatchVal() { }

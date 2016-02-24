@@ -699,22 +699,68 @@
             })();
             console.log("uses the same array of old and new values on first run");
             (function () {
-                var gotNewValues;
-                var gotOldValues;
+                //var gotNewValues;
+                //var gotOldValues;
 
-                scope.aValue = 1;
-                scope.anotherValue = 2;
+                //scope.aValue = 1;
+                //scope.anotherValue = 2;
 
-                scope.$watchGroup([
-                    function (scope) { return scope.aValue; },
-                    function (scope) { return scope.anotherValue; }
-                ], function (newValues, oldValues, scope) {
-                    gotNewValues = newValues;
-                    gotOldValues = oldValues;
-                });
+                //scope.$watchGroup([
+                //    function (scope) { return scope.aValue; },
+                //    function (scope) { return scope.anotherValue; }
+                //], function (newValues, oldValues, scope) {
+                //    gotNewValues = newValues;
+                //    gotOldValues = oldValues;
+                //});
 
-                scope.$digest();
-                console.log(gotNewValues === gotOldValues);
+                //scope.$digest();
+                //console.log(gotNewValues === gotOldValues);
+            })();
+            console.log("calls the listener once when the watch array is empty");
+            (function () {
+                //var gotNewValues;
+                //var gotOldValues;
+
+                //scope.$watchGroup([], function (newValues, oldValues, scope) {
+                //    gotNewValues = newValues;
+                //    gotOldValues = oldValues;
+                //});
+                //scope.$digest();
+
+                //console.log(_.isEqual(gotNewValues, []));
+                //console.log(_.isEqual(gotOldValues, []));
+            })();
+            console.log("can be deregistered");
+            (function () {
+                //var counter = 0;
+
+                //scope.aValue = 1;
+                //scope.anotherValue = 2;
+
+                //var destroyGroup = scope.$watchGroup([
+                //    function (scope) { return scope.aValue; },
+                //    function (scope) { return scope.anotherValue; }
+                //], function (newValues, oldValues, scope) {
+                //    counter++;
+                //});
+                //scope.$digest();
+
+                //scope.anotherValue = 3;
+                //destroyGroup();
+                //scope.$digest();
+
+                //console.log(counter === 1);
+            })();
+            console.log("doesn't call the zero-watch listener when deregistered first");
+            (function () {
+                //var counter = 0;
+                //var destroyGroup = scope.$watchGroup([], function (newValues, oldValues, scope) {
+                //    counter++;
+                //});
+                //destroyGroup();
+                //scope.$digest();
+
+                //console.log(counter === 0);
             })();
         });
     </script>
