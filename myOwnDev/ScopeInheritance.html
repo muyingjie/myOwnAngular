@@ -1,16 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<title>Scope Inheritance</title>
+    <meta charset="UTF-8">
+    <title>Scope Inheritance</title>
     <script src="jquery-2.2.0.js"></script>
     <script src="lodash.js"></script>
     <script src="myAngular.js"></script>
     <script>
+        var scope = new Scope();
+        console.log("inherits the parent's properties");
+        (function () {
+            //var parent = new Scope();
+            //parent.aValue = [1, 2, 3];
 
+            //var child = parent.$new();
+
+            //console.log(_.isEqual(child.aValue, [1, 2, 3]));
+        })();
+        console.log("doesn't cause a parent to inherit its properties");
+        (function () {
+            //var parent = new Scope();
+
+            //var child = parent.$new();
+            //child.aValue = [1, 2, 3];
+
+            //console.log(parent.aValue === undefined);
+        })();
+        console.log("inherits the parent's properties whenever they are defined");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+
+            //parent.aValue = [1, 2, 3];
+
+            //console.log(_.isEqual(child.aValue, [1, 2, 3]));
+        })();
+        console.log("can manipulate a praent scope's property");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+            //parent.aValue = [1, 2, 3];
+
+            //child.aValue.push(4);
+
+            //console.log(_.isEqual(child.aValue, [1, 2, 3, 4]));
+            //console.log(_.isEqual(parent.aValue, [1, 2, 3, 4]));
+        })();
+        console.log("can watch a property in the parent");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+            //parent.aValue = [1, 2, 3];
+            //child.counter = 0;
+
+            //child.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    },
+            //    true
+            //);
+
+            //child.$digest();
+            //console.log(child.counter === 1);
+
+            //parent.aValue.push(4);
+            //child.$digest();
+            //console.log(child.counter === 2);
+        })();
+        console.log("can be nested at any depth");
+        (function () {
+            //var a = new Scope();
+            //var aa = a.$new();
+            //var aaa = aa.$new();
+            //var aab = aa.$new();
+            //var ab = a.$new();
+            //var abb = ab.$new();
+
+            //a.value = 1;
+
+            //console.log(aa.value === 1);
+            //console.log(aaa.value === 1);
+            //console.log(aab.value === 1);
+            //console.log(ab.value === 1);
+            //console.log(abb.value === 1);
+
+            //ab.anotherValue = 2;
+
+            //console.log(abb.anotherValue === 2);
+            //console.log(aa.anotherValue === undefined);
+            //console.log(aaa.anotherValue === undefined);
+        })();
+        console.log("Attribute Shadowing");
+        console.log("shadows a parent's property with the same name");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+
+            //parent.name = "Joe";
+            //child.name = "Jill";
+
+            //console.log(child.name === "Jill");
+            //console.log(parent.name === "Joe");
+        })();
+        console.log("doesn't shadow members of parent scope's attributes");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+
+            //parent.user = { name: "Joe" };
+            //child.user.name = "Jill";
+
+            //console.log(child.user.name === "Jill");
+            //console.log(parent.user.name === "Jill");
+        })();
+        console.log("Seperated Watches");
+        console.log("doesn't digest its parents");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+
+            //parent.aValue = "abc";
+            //parent.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.aValueWas = aNewValue;
+            //    }
+            //);
+
+            //child.$digest();
+            //console.log(child.aValueWas === undefined);
+        })();
+        console.log("Recursive Digestion");
+        console.log("keeps a record of its children");
+        (function () {
+            //var parent = new Scope();
+            //var child1 = parent.$new();
+            //var child2 = parent.$new();
+            //var child2_1 = child2.$new();
+
+            //console.log(parent.$$children.length === 2);
+            //console.log(_.isEqual(parent.$$children[0], child1));
+            //console.log(_.isEqual(parent.$$children[1], child2));
+
+            //console.log(child1.$$children.length === 0);
+            //console.log(child2.$$children.length === 1);
+            //console.log(_.isEqual(child2.$$children[0], child2_1));
+        })();
+        console.log("digests its children");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+
+            //parent.aValue = "abc";
+            //child.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValues, oldValues, scope) {
+            //        scope.aValueWas = newValues;
+            //    }
+            //);
+
+            //parent.$digest();
+            //console.log(child.aValueWas === "abc");
+        })();
+        console.log("Digesting The Whole Tree from $apply,$evalAsync,and $applyAsync");
+        console.log("digests from root on $apply");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+            //var child2 = child.$new();
+
+            //parent.aValue = "abc";
+            //parent.counter = 0;
+            //parent.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
+
+            //child2.$apply(function (scope) { });
+
+            //console.log(parent.counter === 1);
+        })();
+        console.log("schedules a digest from root on $evalAsync");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+            //var child2 = child.$new();
+
+            //parent.aValue = "abc";
+            //parent.counter = 0;
+            //parent.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
+
+            //child2.$evalAsync(function (scope) { });
+
+            //setTimeout(function () {
+            //    console.log(parent.counter === 1);
+            //}, 50);
+        })();
+        console.log("doesn't have access to parent attributes when isolated");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new(true);
+
+            //parent.aValue = "abc";
+
+            //console.log(child.aValue === undefined);
+        })();
+        console.log("cannot watch parent attributes when isolated");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new(true);
+
+            //parent.aValue = "abc";
+            //child.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.aValueWas = newValue;
+            //    }
+            //);
+
+            //child.$digest();
+            //console.log(child.aValueWas === undefined);
+        })();
+        console.log("digests its isolated children");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new(true);
+
+            //child.aValue = "abc";
+            //child.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.aValueWas = newValue;
+            //    }
+            //);
+
+            //parent.$digest();
+            //console.log(child.aValueWas === "abc");
+        })();
+        console.log("digests from root on $apply when isolated");
+        (function () {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            var child2 = child.$new();
+
+            parent.aValue = "abc";
+            parent.counter = 0;
+            parent.$watch(
+                function (scope) { return scope.aValue; },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+
+            child2.$apply(function (scope) { });
+
+            console.log(parent.counter === 1);
+        })();
+        console.log("schedules a digest from root on $evalAsync when isolated");
+        (function () {
+            var parent = new Scope();
+            var child = parent.$new(true);
+            var child2 = child.$new();
+
+            parent.aValue = "abc";
+            parent.counter = 0;
+            parent.$watch(
+                function (scope) { return scope.aValue; },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            );
+
+            child2.$evalAsync(function () { });
+
+            setTimeout(function () {
+                console.log(parent.counter === 1);
+            }, 50);
+        })();
     </script>
 </head>
 <body>
-	
 </body>
 </html>
