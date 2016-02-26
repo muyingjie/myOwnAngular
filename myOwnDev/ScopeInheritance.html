@@ -247,43 +247,117 @@
         })();
         console.log("digests from root on $apply when isolated");
         (function () {
-            var parent = new Scope();
-            var child = parent.$new(true);
-            var child2 = child.$new();
+            //var parent = new Scope();
+            //var child = parent.$new(true);
+            //var child2 = child.$new();
 
-            parent.aValue = "abc";
-            parent.counter = 0;
-            parent.$watch(
-                function (scope) { return scope.aValue; },
-                function (newValue, oldValue, scope) {
-                    scope.counter++;
-                }
-            );
+            //parent.aValue = "abc";
+            //parent.counter = 0;
+            //parent.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
 
-            child2.$apply(function (scope) { });
+            //child2.$apply(function (scope) { });
 
-            console.log(parent.counter === 1);
+            //console.log(parent.counter === 1);
         })();
         console.log("schedules a digest from root on $evalAsync when isolated");
         (function () {
-            var parent = new Scope();
-            var child = parent.$new(true);
-            var child2 = child.$new();
+            //var parent = new Scope();
+            //var child = parent.$new(true);
+            //var child2 = child.$new();
 
-            parent.aValue = "abc";
-            parent.counter = 0;
-            parent.$watch(
+            //parent.aValue = "abc";
+            //parent.counter = 0;
+            //parent.$watch(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
+
+            //child2.$evalAsync(function () { });
+
+            //setTimeout(function () {
+            //    console.log(parent.counter === 1);
+            //}, 50);
+        })();
+        console.log("executes $evalAsync functions on isolated scopes");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new();
+
+            //child.$evalAsync(function (scope) {
+            //    scope.didEvalAsync = true;
+            //});
+
+            //setTimeout(function () {
+            //    console.log(child.didEvalAsync === true);
+            //}, 50);
+        })();
+        console.log("executes $$postDigest functions on isolated scopes");
+        (function () {
+            //var parent = new Scope();
+            //var child = parent.$new(true);
+
+            //child.$$postDigest(function () {
+            //    child.didPostDigest = true;
+            //});
+
+            //parent.$digest();
+
+            //console.log(child.didPostDigest === true);
+        })();
+        console.log("can take some other scope as the parent");
+        (function () {
+            //var prototypeParent = new Scope();
+            //var hierarchyParent = new Scope();
+            //var child = prototypeParent.$new(false, hierarchyParent);
+
+            //prototypeParent.a = 42;
+            //console.log(child.a === 42);
+
+            //child.counter = 0;
+            //child.$watch(function (scope) {
+            //    scope.counter++;
+            //});
+
+            //prototypeParent.$digest();
+            //console.log(child.counter === 0);
+
+            //hierarchyParent.$digest();
+            //console.log(child.counter === 2);
+        })();
+        console.log("Destroying Scopes");
+        console.log("is no longer digested when $destroy has been called");
+        (function () {
+            var parent = new Scope();
+            var child = parent.$new();
+
+            child.aValue = [1, 2, 3];
+            child.counter = 0;
+            child.$watch(
                 function (scope) { return scope.aValue; },
                 function (newValue, oldValue, scope) {
                     scope.counter++;
-                }
+                },
+                true
             );
 
-            child2.$evalAsync(function () { });
+            parent.$digest();
+            console.log(child.counter === 1);
 
-            setTimeout(function () {
-                console.log(parent.counter === 1);
-            }, 50);
+            child.aValue.push(4);
+            parent.$digest();
+            console.log(child.counter === 2);
+
+            child.$destroy();
+            child.aValue.push(5);
+            parent.$digest();
+            console.log(child.counter === 2);
         })();
     </script>
 </head>
