@@ -261,6 +261,72 @@
         }
     };
 
+    Scope.prototype.$destroy = function () {
+        if (this.$parent) {
+            var siblings = this.$parent.$$children;
+            var indexOfThis = siblings.indexOf(this);
+            if (indexOfThis >= 0) {
+                siblings.splice(indexOfThis, 1);
+            }
+        }
+        this.$$watchers = null;
+    };
+
+    Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
+        var self = this;
+        var newValue;
+        var oldValue;
+        var changeCount = 0;
+
+        var internalWatchFn = function (scope) {
+            newValue = watchFn(scope);
+
+            if (_.isObject(newValue)) {
+                if (_.isArrayLike(newValue)) {
+                    if (!_.isArray(oldValue)) {
+                        changeCount++;
+                        oldValue = [];
+                    }
+                    if (newValue.length !== oldValue.length) {
+                        changeCount++;
+                        oldValue.length = newValue.length;
+                    }
+                    _.forEach(newValue, function (newItem, i) {
+                        var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i]);
+                        if (!bothNaN && newItem !== oldValue[i]) {
+                            changeCount++;
+                            oldValue[i] = newItem;
+                        }
+                    });
+                } else {
+                    if (!_.isObject(oldValue) || _.isArrayLike(oldValue)) {
+                        changeCount++;
+                        oldValue = {};
+                    }
+                    _.forOwn(newValue, function (newVal, key) {
+                        if (oldValue[key] !== newVal) {
+                            changeCount++;
+                            oldValue[key] = newVal;
+                        }
+                    });
+                }
+            } else {
+                if (!self.$$areEqual(newValue, oldValue, false)) {
+                    changeCount++;
+                }
+                oldValue = newValue;
+            }
+
+            return changeCount;
+        };
+
+        var internalListenerFn = function () {
+            listenerFn(newValue, oldValue, self);
+        };
+
+        return this.$watch(internalWatchFn, internalListenerFn);
+    };
+
     function initWatchVal() { }
 
     window.Scope = Scope;
