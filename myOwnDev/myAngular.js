@@ -276,9 +276,14 @@
         var self = this;
         var newValue;
         var oldValue;
+        var oldLength;
+        var veryOldValue;
+        var trackVeryOldValue = (listenerFn.length > 1);
         var changeCount = 0;
+        var firstRun = true;
 
         var internalWatchFn = function (scope) {
+            var newLength;
             newValue = watchFn(scope);
 
             if (_.isObject(newValue)) {
@@ -302,13 +307,34 @@
                     if (!_.isObject(oldValue) || _.isArrayLike(oldValue)) {
                         changeCount++;
                         oldValue = {};
+                        oldLength = 0;
                     }
+                    newLength = 0;
                     _.forOwn(newValue, function (newVal, key) {
-                        if (oldValue[key] !== newVal) {
+                        newLength++;
+                        if (oldValue.hasOwnProperty(key)) {
+                            var bothNaN = _.isNaN(newVal) && _.isNaN(oldValue[key]);
+                            if (!bothNaN && oldValue[key] !== newVal) {
+                                changeCount++;
+                                oldValue[key] = newVal;
+                            }
+                        } else {
                             changeCount++;
+                            oldLength++;
                             oldValue[key] = newVal;
                         }
                     });
+                    //到目前newLength记录newValue里面属性总数
+                    //oldLength记录oldValue里面没有的newValue中的属性
+                    if (oldLength > newLength) {
+                        changeCount++;
+                        _.forOwn(oldValue, function (oldVal, key) {
+                            if (!newValue.hasOwnProperty(key)) {
+                                oldLength--;
+                                delete oldValue[key];
+                            }
+                        });
+                    }
                 }
             } else {
                 if (!self.$$areEqual(newValue, oldValue, false)) {
@@ -321,7 +347,16 @@
         };
 
         var internalListenerFn = function () {
-            listenerFn(newValue, oldValue, self);
+            if (firstRun) {
+                listenerFn(newValue, newValue, self);
+                firstRun = false;
+            } else {
+                listenerFn(newValue, oldValue, self);
+            }
+
+            if (trackVeryOldValue) {
+                veryOldValue = _.clone(newValue);
+            }
         };
 
         return this.$watch(internalWatchFn, internalListenerFn);

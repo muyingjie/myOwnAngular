@@ -4,6 +4,6 @@ _.mixin({
             return false;
         }
         var len = obj.length;
-        return _.isNumber(len);
+        return len === 0 || (_.isNumber(len) && length > 0 && (length - 1) in obj);
     }
 });

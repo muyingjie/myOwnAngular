@@ -256,47 +256,185 @@
         console.log("Detecting New Or Replaced Attributes in Objects");
         console.log("notices when an attribute is added to an object");
         (function () {
-            scope.counter = 0;
-            scope.obj = { a: 1 };
+            //scope.counter = 0;
+            //scope.obj = { a: 1 };
 
-            scope.$watchCollection(
-                function (scope) { return scope.obj; },
-                function (newValue, oldValue, scope) {
-                    scope.counter++;
-                }
-            );
+            //scope.$watchCollection(
+            //    function (scope) { return scope.obj; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
 
-            scope.$digest();
-            console.log(scope.counter === 1);
+            //scope.$digest();
+            //console.log(scope.counter === 1);
 
-            scope.obj.b = 2;
-            scope.$digest();
-            console.log(scope.counter === 2);
+            //scope.obj.b = 2;
+            //scope.$digest();
+            //console.log(scope.counter === 2);
 
-            scope.$digest();
-            console.log(scope.counter === 2);
+            //scope.$digest();
+            //console.log(scope.counter === 2);
         })();
         console.log("notices when an attribute is changed in an object");
         (function () {
-            scope.counter = 0;
-            scope.obj = { a: 1 };
+            //scope.counter = 0;
+            //scope.obj = { a: 1 };
+
+            //scope.$watchCollection(
+            //    function (scope) { return scope.obj;},
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
+
+            //scope.$digest();
+            //console.log(scope.counter === 1);
+
+            //scope.obj.a = 2;
+            //scope.$digest();
+            //console.log(scope.counter === 2);
+
+            //scope.$digest();
+            //console.log(scope.counter === 2);
+        })();
+        console.log("doesn't fail on NaN attributes in objects");
+        (function () {
+            //scope.counter = 0;
+            //scope.obj = {
+            //    a: NaN
+            //};
+
+            //scope.$watchCollection(
+            //    function (scope) { return scope.obj; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
+
+            //scope.$digest();
+            //console.log(scope.counter === 1);
+        })();
+        console.log("Detecting Removed Attributes in Objects");
+        console.log("notices when an attribute is removed from an object");
+        (function () {
+            //scope.counter = 0;
+            //scope.obj = { a: 1 };
+
+            //scope.$watchCollection(
+            //    function (scope) { return scope.obj; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
+
+            //scope.$digest();
+            //console.log(scope.counter === 1);
+
+            //delete scope.obj.a;
+            //scope.$digest();
+            //console.log(scope.counter === 2);
+
+            //scope.$digest();
+            //console.log(scope.counter === 2);
+        })();
+        console.log("Preventing Unnecessary Object Iteration");
+        console.log("Dealing with Objects that Have A length");
+        console.log("doesn't consider any object with a length property an array");
+        (function () {
+            //scope.obj = {
+            //    length: 42,
+            //    otherkey: "abc"
+            //};
+            //scope.counter = 0;
+
+            //scope.$watchCollection(
+            //    function (scope) { return scope.obj; },
+            //    function (newValue, oldValue, scope) {
+            //        scope.counter++;
+            //    }
+            //);
+
+            //scope.$digest();
+
+            //scope.obj.newKey = "def";
+            //scope.$digest();
+
+            //console.log(scope.counter === 2);
+        })();
+        console.log("Handling The Old Collection Value To Listeners");
+        console.log("gives the old non-collection value to listeners");
+        (function () {
+            //scope.aValue = 42;
+            //var oldValueGiven;
+
+            //scope.$watchCollection(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        oldValueGiven = oldValue;
+            //    }
+            //);
+
+            //scope.$digest();
+
+            //scope.aValue = 43;
+            //scope.$digest();
+
+            //console.log(oldValueGiven === 42);
+        })();
+        console.log("gives the old array value to listeners");
+        (function () {
+            //scope.aValue = [1, 2, 3];
+            //var oldValueGiven;
+
+            //scope.$watchCollection(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        oldValueGiven = oldValue;
+            //    }
+            //);
+
+            //scope.$digest();
+
+            //scope.aValue.push(4);
+            //scope.$digest();
+
+            //console.log(_.isEqual(oldValueGiven, [1, 2, 3]));
+        })();
+        console.log("gives the old object value to listeners");
+        (function () {
+            //scope.aValue = { a: 1, b: 2 };
+            //var oldValueGiven;
+
+            //scope.$watchCollection(
+            //    function (scope) { return scope.aValue; },
+            //    function (newValue, oldValue, scope) {
+            //        oldValueGiven = oldValue;
+            //    }
+            //);
+
+            //scope.$digest();
+
+            //scope.aValue.c = 3;
+            //scope.$digest();
+
+            //console.log(_.isEqual(oldValueGiven, { a: 1, b: 2 }));
+        })();
+        console.log("uses the new value as the old value on first digest");
+        (function () {
+            scope.aValue = { a: 1, b: 2 };
+            var oldValueGiven;
 
             scope.$watchCollection(
-                function (scope) { return scope.obj;},
+                function (scope) { return scope.aValue; },
                 function (newValue, oldValue, scope) {
-                    scope.counter++;
+                    oldValueGiven = oldValue;
                 }
             );
 
             scope.$digest();
-            console.log(scope.counter === 1);
 
-            scope.obj.a = 2;
-            scope.$digest();
-            console.log(scope.counter === 2);
-
-            scope.$digest();
-            console.log(scope.counter === 2);
+            console.log(_.isEqual(oldValueGiven, { a: 1, b: 2 }));
         })();
     </script>
 </head>
