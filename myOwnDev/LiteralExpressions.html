@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LiteralExpressions</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        console.log("can parse an integer");
+        (function () {
+            //var fn = parse("42");
+            //console.log(fn);
+        })();
+        console.log("can parse a floating point number");
+        (function () {
+            //var fn = parse("4.2");
+            //console.log(fn() === 4.2);
+        })();
+        console.log("can parse a floating point number without an integer part");
+        (function () {
+            //var fn = parse(".42");
+            //console.log(fn() === 0.42);
+        })();
+        console.log("can parse a number in scientific notation");
+        (function () {
+            //var fn = parse("42e3");
+            //console.log(fn() === 42000);
+        })();
+        console.log("can parse scientific notation with a float coefficient");
+        (function () {
+            //var fn = parse(".42e2");
+            //console.log(fn() === 42);
+        })();
+        console.log("will not parse invalid scientific notation");
+        (function () {
+            //parse("42e-");
+            //parse("42e-a");
+        })();
+        console.log("can parse a string in single quotes");
+        (function () {
+            //var fn = parse("'abc'");
+            //console.log(fn() === 'abc');
+
+            //var fn = parse('"abc"');
+            //console.log(fn() === 'abc');
+        })();
+        console.log("will not parse a string with mismatching quotes");
+        (function () {
+            //var fn = parse('"abc\'');
+            //console.log(fn());
+        })();
+        console.log("can parse a string with single quotes inside");
+        (function () {
+            //var fn = parse("'a\\\'b'");
+            //console.log(fn());
+        })();
+        console.log("can parse a string with double quotes inside");
+        (function () {
+            //var fn = parse('"a\\\"b"');
+            //console.log(fn());
+        })();
+        console.log("will parse a string with unicode escapes");
+        (function () {
+            //var fn = parse('"\\u00A0"');
+            //console.log(fn());
+        })();
+        console.log("will not parse a string with invalid unicode escapes");
+        (function () {
+            //console.log(parse('"\\u00T0"')());
+        })();
+        console.log("Parsing true,false and null");
+        console.log("will parse null");
+        (function () {
+            //console.log(parse("null")());
+        })();
+        console.log("Parsing Whitespace");
+        console.log("ignores whitespace");
+        (function () {
+            //console.log(parse(" \n42 ")());
+        })();
+        console.log("Parsing Arrays");
+        console.log("will parse an empty array");
+        (function () {
+            //console.log(parse("[]")());
+        })();
+        console.log("will parse a non-empty array");
+        (function () {
+            console.log(parse('[1,"two",[3],true]'));
+        })();
+    </script>
+</head>
+<body>
+</body>
+</html>
