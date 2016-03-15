@@ -86,7 +86,28 @@
         })();
         console.log("will parse a non-empty array");
         (function () {
-            console.log(parse('[1,"two",[3],true]'));
+            //console.log(parse('[1,"two",[3],true]'));
+        })();
+        console.log("will parse an array with trailing commas");
+        (function () {
+            //var fn = parse('[1,2,3,4,]');
+            //console.log(_.isEqual(fn(), [1, 2, 3, 4]));
+        })();
+        console.log("Parsing Object");
+        console.log("will parse an empty object");
+        (function () {
+            //var fn = parse("{}");
+            //console.log(_.isEqual(fn(), {}));
+        })();
+        console.log("will parse a non-empty object");
+        (function () {
+            //var fn = parse('{"a key":1,\'another-key\':2}');
+            //console.log(_.isEqual(fn(), { 'a key': 1, 'another-key': 2 }));
+        })();
+        console.log("will parse an object with identifier keys");
+        (function () {
+            //var fn = parse('{a:1,b:[2,3],c:{d:4}}');
+            //console.log(fn());
         })();
     </script>
 </head>

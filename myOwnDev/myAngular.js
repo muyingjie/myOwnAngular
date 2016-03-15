@@ -459,11 +459,11 @@
 
         while (this.index < this.text.length) {
             this.ch = this.text.charAt(this.index);
-            if (this.isNumber(this.ch) || (this.ch === '.' && this.isNumber(this.peek()))) {
+            if (this.isNumber(this.ch) || (this.is('.') && this.isNumber(this.peek()))) {
                 this.readNumber();
-            } else if (this.ch === '\'' || this.ch === '"') {
+            } else if (this.is('\'"')) {
                 this.readString(this.ch);
-            } else if (this.ch === '[' || this.ch === ']' || this.ch === ',') {
+            } else if (this.is('[],{}:')) {
                 this.tokens.push({
                     text: this.ch
                 });
@@ -568,11 +568,17 @@
             this.index++;
         }
 
-        var token = { text: text };
+        var token = {
+            text: text,
+            identifier: true
+        };
         this.tokens.push(token);
     };
     Lexer.prototype.peek = function () {
         return this.index < this.text.length - 1 ? this.text.charAt(this.index + 1) : false;
+    };
+    Lexer.prototype.is = function (chs) {
+        return chs.indexOf(this.ch) >= 0;
     };
 
     //Abstract Syntax Tree
@@ -582,6 +588,9 @@
     AST.Program = "Program";
     AST.Literal = "Literal";
     AST.ArrayExpression = "ArrayExpression";
+    AST.ObjectExpression = "ObjectExpression";
+    AST.Property = "Property";
+    AST.Identifier = "Identifier";
     AST.prototype.constants = {
         "null": { type: AST.Literal, value: null },
         "true": { type: AST.Literal, value: true },
@@ -600,12 +609,42 @@
     AST.prototype.primary = function () {
         if (this.expect('[')) {
             return this.arrayDeclaration();
+        } else if (this.expect('{')) {
+            return this.object();
         } else if (this.constants.hasOwnProperty(this.tokens[0].text)) {
             return this.constants[this.consume().text];
         } else {
             return this.constant();
         }
     };
+    AST.prototype.object = function () {
+        var properties = [];
+        if (!this.peek('}')) {
+            do {
+                var property = { type: AST.Property };
+                if (this.peek().identifier) {
+                    property.key = this.identifier();
+                } else {
+                    property.key = this.constant();
+                }
+                this.consume(':');
+                property.value = this.primary();
+                properties.push(property);
+            } while (this.expect(','));
+        }
+        this.consume('}');
+        return {
+            type: AST.ObjectExpression,
+            properties: properties
+        };
+    };
+    AST.prototype.identifier = function () {
+        return {
+            type: AST.Identifier,
+            name: this.consume().text
+        };
+    };
+    //功能和peek相同，附加了将e所在token删除的功能
     AST.prototype.expect = function (e) {
         var token = this.peek(e);
         if (token) {
@@ -616,6 +655,9 @@
         var elements = [];
         if (!this.peek(']')) {
             do {
+                if (this.peek(']')) {
+                    break;
+                }
                 elements.push(this.primary());
             } while (this.expect(','));
         }
@@ -625,6 +667,7 @@
             elements: elements
         };
     };
+    //判断e所在token是否在队头，是的话返回
     AST.prototype.peek = function (e) {
         if (this.tokens.length > 0) {
             var text = this.tokens[0].text;
@@ -657,6 +700,7 @@
         return new Function(this.state.body.join(""));
     };
     ASTCompiler.prototype.recurse = function (ast) {
+        var _this = this;
         switch (ast.type) {
             case AST.Program:
                 this.state.body.push("return ", this.recurse(ast.body), ';');
@@ -665,9 +709,16 @@
                 return this.escape(ast.value);
             case AST.ArrayExpression:
                 var elements = _.map(ast.elements, function (element) {
-                    return this.recurse(element);
-                }, this);
+                    return _this.recurse(element);
+                });
                 return "[" + elements.join(',') + "]";
+            case AST.ObjectExpression:
+                var properties = _.map(ast.properties, function (property) {
+                    var key = property.key.type === AST.Identifier ? property.key.name : this.escape(property.key.value);
+                    var value = _this.recurse(property.value);
+                    return key + ':' + value;
+                });
+                return "{" + properties.join(',') + "}";
         }
     };
     ASTCompiler.prototype.escape = function (value) {
@@ -676,7 +727,7 @@
         } else if (_.isNull(value)) {
             return "null";
         } else {
-            return false;
+            return value;
         }
     };
     ASTCompiler.prototype.stringEscapeRegex = /[^ a-zA-Z0-9]/g;//注意有一个空格
