@@ -463,7 +463,7 @@
                 this.readNumber();
             } else if (this.is('\'"')) {
                 this.readString(this.ch);
-            } else if (this.is('[],{}:')) {
+            } else if (this.is('[],{}:.')) {
                 this.tokens.push({
                     text: this.ch
                 });
@@ -591,10 +591,13 @@
     AST.ObjectExpression = "ObjectExpression";
     AST.Property = "Property";
     AST.Identifier = "Identifier";
+    AST.ThisExpression = "ThisExpression";
+    AST.MemberExpression = "MemberExpression";
     AST.prototype.constants = {
         "null": { type: AST.Literal, value: null },
         "true": { type: AST.Literal, value: true },
-        "false": { type: AST.Literal, value: false }
+        "false": { type: AST.Literal, value: false },
+        "this": { type: AST.ThisExpression }
     };
     AST.prototype.ast = function (text) {
         this.tokens = this.lexer.lex(text);
@@ -607,15 +610,26 @@
         };
     };
     AST.prototype.primary = function () {
+        var primary;
         if (this.expect('[')) {
-            return this.arrayDeclaration();
+            primary = this.arrayDeclaration();
         } else if (this.expect('{')) {
-            return this.object();
+            primary = this.object();
         } else if (this.constants.hasOwnProperty(this.tokens[0].text)) {
-            return this.constants[this.consume().text];
+            primary = this.constants[this.consume().text];
+        } else if (this.peek().identifier) {
+            primary = this.identifier();
         } else {
-            return this.constant();
+            primary = this.constant();
         }
+        if (this.expect('.')) {
+            primary = {
+                type: AST.MemberExpression,
+                object: primary,
+                property: this.identifier()
+            };
+        }
+        return primary;
     };
     AST.prototype.object = function () {
         var properties = [];
@@ -695,11 +709,16 @@
     }
     ASTCompiler.prototype.compile = function (text) {
         var ast = this.astBuilder.ast(text);
-        this.state = { body: [] };
+        this.state = {
+            body: [],
+            nextId: 0,
+            vars: []
+        };
         this.recurse(ast);
-        return new Function(this.state.body.join(""));
+        return new Function('s', (this.state.vars.length ? 'var ' + this.state.vars.join(',') + ';' : '') + this.state.body.join(''));
     };
     ASTCompiler.prototype.recurse = function (ast) {
+        var intoId;
         var _this = this;
         switch (ast.type) {
             case AST.Program:
@@ -719,6 +738,17 @@
                     return key + ':' + value;
                 });
                 return "{" + properties.join(',') + "}";
+            case AST.Identifier:
+                intoId = this.nextId();
+                this.if_('s', this.assign(intoId, this.nonComputedMember('s', ast.name)));
+                return intoId;
+            case AST.ThisExpression:
+                return 's';
+            case AST.MemberExpression:
+                intoId = this.nextId();
+                var left = this.recurse(ast.object);
+                this.if_(left, this.assign(intoId, this.nonComputedMember(left, ast.property.name)));
+                return intoId;
         }
     };
     ASTCompiler.prototype.escape = function (value) {
@@ -733,6 +763,20 @@
     ASTCompiler.prototype.stringEscapeRegex = /[^ a-zA-Z0-9]/g;//注意有一个空格
     ASTCompiler.prototype.stringEscapeFn = function (c) {
         return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
+    };
+    ASTCompiler.prototype.nonComputedMember = function (left, right) {
+        return '(' + left + ').' + right;
+    };
+    ASTCompiler.prototype.if_ = function (test, consequent) {
+        this.state.body.push('if(', test, '){', consequent, '}');
+    };
+    ASTCompiler.prototype.assign = function (id, value) {
+        return id + '=' + value + ';';
+    };
+    ASTCompiler.prototype.nextId = function () {
+        var id = 'v' + (this.state.nextId++);
+        this.state.vars.push(id);
+        return id;
     };
 
     function Parser(lexer) {

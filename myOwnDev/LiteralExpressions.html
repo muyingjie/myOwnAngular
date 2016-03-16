@@ -109,6 +109,39 @@
             //var fn = parse('{a:1,b:[2,3],c:{d:4}}');
             //console.log(fn());
         })();
+        console.log("Lookup And Function Call Expressions");
+        console.log("simple attribute lookup");
+        console.log("looks up an attribute from the scope");
+        (function () {
+            //var fn = parse("aKey");
+            //console.log(fn({ aKey: 42 }));
+            //console.log(fn({}));
+        })();
+        console.log("returns undefined when looking up attribute from undefined");
+        (function () {
+            //var fn = parse("aKey");
+            //console.log(fn());
+        })();
+        console.log("will parse this");
+        (function () {
+            //var fn = parse("this");
+            //var scope = {};
+            //console.log(fn(scope));
+            //console.log(fn());
+        })();
+        console.log("Non-Computed Attribute Lookup");
+        console.log("looks up a 2-part identifier path from the scope");
+        (function () {
+            var fn = parse("aKey.anotherKey");
+            console.log(fn({ aKey: { anotherKey: 42 } }));
+            console.log(fn({ aKey: {} }));
+            console.log(fn({}));
+        })();
+        console.log("looks up a member from an object");
+        (function () {
+            //var fn = parse('{aKey:42}.aKey');
+            //console.log(fn());
+        })();
     </script>
 </head>
 <body>
