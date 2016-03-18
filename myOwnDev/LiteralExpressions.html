@@ -119,6 +119,7 @@
         })();
         console.log("returns undefined when looking up attribute from undefined");
         (function () {
+            //往parse中传的参数代表要获取aKey属性的值，aKey属性属于fn传入的参数的对象，在本例中fn没有传入任何参数，但是构造函数方式创建的函数在这种情况下是不报错的
             //var fn = parse("aKey");
             //console.log(fn());
         })();
@@ -132,15 +133,101 @@
         console.log("Non-Computed Attribute Lookup");
         console.log("looks up a 2-part identifier path from the scope");
         (function () {
-            var fn = parse("aKey.anotherKey");
-            console.log(fn({ aKey: { anotherKey: 42 } }));
-            console.log(fn({ aKey: {} }));
-            console.log(fn({}));
+            //var fn = parse("aKey.anotherKey");
+            //console.log(fn({ aKey: { anotherKey: 42 } }));
+            //console.log(fn({ aKey: {} }));
+            //console.log(fn({}));
         })();
         console.log("looks up a member from an object");
         (function () {
             //var fn = parse('{aKey:42}.aKey');
             //console.log(fn());
+        })();
+        console.log("looks up a 4-part identifier path from the scope");
+        (function () {
+            //var fn = parse("aKey.secondKey.thirdKey.fourthKey");
+            //console.log(fn({ aKey: { secondKey: { thirdKey: { fourthKey: 42 } } } }));
+            //console.log(fn({ aKey: { secondKey: { thirdkey: {} } } }));
+            //console.log(fn({ aKey: {} }));
+            //console.log(fn({}));
+        })();
+        console.log("uses locals instead of scope when there is a matching key");
+        (function () {
+            //var fn = parse("aKey");
+            //var scope = { aKey: 42 };
+            //var locals = { aKey: 43 };
+
+            //console.log(fn(scope, locals));
+        })();
+        console.log("doesn't use locals instead of scope when no matching key");
+        (function () {
+            //var fn = parse("aKey");
+            //var scope = { aKey: 42 };
+            //var locals = { otherKey: 43 };
+            //console.log(fn(scope, locals));
+        })();
+        console.log("uses locals instead of scope when the first part matches");
+        (function () {
+            //var fn = parse("aKey.anotherKey");
+            //var scope = { aKey: { anotherKey: 42 } };
+            //var locals = { aKey: {} };
+            //console.log(fn(scope, locals));
+        })();
+        console.log("Computed Attribute Lookup");
+        console.log("parses a simple computed property access");
+        (function () {
+            //var fn = parse('aKey["anotherKey"]');
+            //console.log(fn({ aKey: { anotherKey: 42 } }));
+        })();
+        console.log("parses a computed numeric array access");
+        (function () {
+            //var fn = parse('anArray[1]');
+            //console.log(fn({ anArray: [1, 2, 3] }));
+        })();
+        console.log("parses a computed access with another key as property");
+        (function () {
+            //var fn = parse('lock[key]');
+            //console.log(fn({ key: 'theKey', lock: { theKey: 42 } }));
+        })();
+        console.log("parses computed access with another access as property");
+        (function () {
+            //var fn = parse('lock[keys["aKey"]]');
+            //console.log(fn({ keys: { aKey: 'theKey' }, lock: { theKey: 42 } }));
+        })();
+        console.log("Function Calls");
+        console.log("parses a function call");
+        (function () {
+            //var fn = parse('aFunction()');
+            //console.log(fn({ aFunction: function () { return 42; } }));
+        })();
+        console.log("parses a function call with a single number argument");
+        (function () {
+            var fn = parse('aFunction(42)');
+            console.log(fn({ aFunction: function (n) { return n; } }));
+        })();
+        console.log("parses a function call with a single identifier argument");
+        (function () {
+            var fn = parse('aFunction(n)');
+            console.log(fn({ n: 42, aFunction: function (arg) { return arg; } }));
+        })();
+        console.log("parses a function call with a single function call argument");
+        (function () {
+            var fn = parse('aFunction(argFn())');
+            console.log(fn({
+                argFn: _.constant(42),
+                aFunction: function (arg) { return arg; }
+            }));
+        })();
+        console.log("parses a function call with multiple arguments");
+        (function () {
+            var fn = parse('aFunction(37,n,argFn())');
+            console.log(fn({
+                n: 3,
+                argFn: _.constant(2),
+                aFunction: function (a1, a2, a3) {
+                    return a1 + a2 + a3;
+                }
+            }));
         })();
     </script>
 </head>
