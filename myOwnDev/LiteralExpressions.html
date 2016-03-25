@@ -202,32 +202,88 @@
         })();
         console.log("parses a function call with a single number argument");
         (function () {
-            var fn = parse('aFunction(42)');
-            console.log(fn({ aFunction: function (n) { return n; } }));
+            //var fn = parse('aFunction(42)');
+            //console.log(fn({ aFunction: function (n) { return n; } }));
         })();
         console.log("parses a function call with a single identifier argument");
         (function () {
-            var fn = parse('aFunction(n)');
-            console.log(fn({ n: 42, aFunction: function (arg) { return arg; } }));
+            //var fn = parse('aFunction(n)');
+            //console.log(fn({ n: 42, aFunction: function (arg) { return arg; } }));
         })();
         console.log("parses a function call with a single function call argument");
         (function () {
-            var fn = parse('aFunction(argFn())');
-            console.log(fn({
-                argFn: _.constant(42),
-                aFunction: function (arg) { return arg; }
-            }));
+            //var fn = parse('aFunction(argFn())');
+            //console.log(fn({
+            //    argFn: _.constant(42),
+            //    aFunction: function (arg) { return arg; }
+            //}));
         })();
         console.log("parses a function call with multiple arguments");
         (function () {
-            var fn = parse('aFunction(37,n,argFn())');
-            console.log(fn({
-                n: 3,
-                argFn: _.constant(2),
-                aFunction: function (a1, a2, a3) {
-                    return a1 + a2 + a3;
-                }
-            }));
+            //var fn = parse('aFunction(37,n,argFn())');
+            //console.log(fn({
+            //    n: 3,
+            //    argFn: _.constant(2),
+            //    aFunction: function (a1, a2, a3) {
+            //        return a1 + a2 + a3;
+            //    }
+            //}));
+        })();
+        console.log("Method Calls");
+        console.log("calls methods accessed as computed properties");
+        (function () {
+            //var scope = {
+            //    anObject: {
+            //        aMember: 42,
+            //        aFunction: function () {
+            //            return this.aMember;
+            //        }
+            //    }
+            //};
+            //var fn = parse('anObject["aFunction"]()');
+            //console.log(fn(scope));
+        })();
+        console.log("calls methods accessed as non-computed properties");
+        (function () {
+            //var scope = {
+            //    anObject: {
+            //        aMember: 42,
+            //        aFunction: function () {
+            //            return this.aMember
+            //        }
+            //    }
+            //};
+            //var fn = parse("anObject.aFunction()");
+            //console.log(fn(scope));
+        })();
+        console.log("binds bare functions to the scope");
+        (function () {
+            //var scope = {
+            //    aFunction: function () {
+            //        return this;
+            //    }
+            //};
+            //var fn = parse("aFunction()");
+            //console.log(fn(scope));//应该和scope一样
+        })();
+        console.log("binds bare functions on locals to the locals");
+        (function () {
+            //var scope = {};
+            //var locals = {
+            //    aFunction: function () {
+            //        return this;
+            //    }
+            //};
+            //var fn = parse("aFunction()");
+            //console.log(fn(scope, locals));
+        })();
+        console.log("Assigning Values");
+        console.log("parses a simple attribute assignment");
+        (function () {
+            var fn = parse("anAttribute=42");
+            var scope = {};
+            fn(scope);
+            console.log(scope.anAttribute);
         })();
     </script>
 </head>
