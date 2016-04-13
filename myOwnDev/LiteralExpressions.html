@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -119,7 +119,7 @@
         })();
         console.log("returns undefined when looking up attribute from undefined");
         (function () {
-            //ÍùparseÖĞ´«µÄ²ÎÊı´ú±íÒª»ñÈ¡aKeyÊôĞÔµÄÖµ£¬aKeyÊôĞÔÊôÓÚfn´«ÈëµÄ²ÎÊıµÄ¶ÔÏó£¬ÔÚ±¾ÀıÖĞfnÃ»ÓĞ´«ÈëÈÎºÎ²ÎÊı£¬µ«ÊÇ¹¹Ôìº¯Êı·½Ê½´´½¨µÄº¯ÊıÔÚÕâÖÖÇé¿öÏÂÊÇ²»±¨´íµÄ
+            //å¾€parseä¸­ä¼ çš„å‚æ•°ä»£è¡¨è¦è·å–aKeyå±æ€§çš„å€¼ï¼ŒaKeyå±æ€§å±äºfnä¼ å…¥çš„å‚æ•°çš„å¯¹è±¡ï¼Œåœ¨æœ¬ä¾‹ä¸­fnæ²¡æœ‰ä¼ å…¥ä»»ä½•å‚æ•°ï¼Œä½†æ˜¯æ„é€ å‡½æ•°æ–¹å¼åˆ›å»ºçš„å‡½æ•°åœ¨è¿™ç§æƒ…å†µä¸‹æ˜¯ä¸æŠ¥é”™çš„
             //var fn = parse("aKey");
             //console.log(fn());
         })();
@@ -264,7 +264,7 @@
             //    }
             //};
             //var fn = parse("aFunction()");
-            //console.log(fn(scope));//Ó¦¸ÃºÍscopeÒ»Ñù
+            //console.log(fn(scope));//åº”è¯¥å’Œscopeä¸€æ ·
         })();
         console.log("binds bare functions on locals to the locals");
         (function () {
@@ -280,10 +280,42 @@
         console.log("Assigning Values");
         console.log("parses a simple attribute assignment");
         (function () {
-            var fn = parse("anAttribute=42");
+            //var fn = parse("anAttribute=42");
+            //var scope = {};
+            //fn(scope);
+            //console.log(scope.anAttribute);
+        })();
+        console.log("can assign any primary expression");
+        (function () {
+            //var fn = parse("anAttribute=aFunction()");
+            //var scope = {
+            //    aFunction: _.constant(42)
+            //};
+            //fn(scope);
+            //console.log(scope.anAttribute);
+        })();
+        console.log("can assign a computed object property");
+        (function () {
+            //var fn = parse("anObject['anAttribute'] = 42");
+            //var scope = {
+            //    anObject: {}
+            //};
+            //fn(scope);
+            //console.log(scope.anObject.anAttribute);
+        })();
+        console.log("can assign a nested object property");
+        (function () {
+            //var fn = parse("anArray[0].anAttribute=42");
+            //var scope = { anArray: [{}] };
+            //fn(scope);
+            //console.log(scope.anArray[0].anAttribute);
+        })();
+        console.log("creates the objects in the assignment path that don't exist");
+        (function () {
+            var fn = parse("some['nested'].property.path = 42");
             var scope = {};
             fn(scope);
-            console.log(scope.anAttribute);
+            console.log(scope.some.nested.property.path);
         })();
     </script>
 </head>

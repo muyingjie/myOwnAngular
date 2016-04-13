@@ -1,6 +1,6 @@
-(function () {
+Ôªø(function () {
     function Scope() {
-        //À´$∑˚∫≈¥˙±Ì «ÀΩ”– Ù–‘
+        //Âèå$Á¨¶Âè∑‰ª£Ë°®ÊòØÁßÅÊúâÂ±ûÊÄß
         this.$$watchers = [];
         this.$$lastDirtyWatch = null;
         this.$$asyncQueue = [];
@@ -12,11 +12,13 @@
         this.$$listeners = {};
         this.$$phase = null;
     }
+
     Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
         var self = this;
         var watcher = {
             watchFn: watchFn,
-            listenerFn: listenerFn || function () { },
+            listenerFn: listenerFn || function () {
+            },
             valueEq: !!valueEq,
             last: initWatchVal
         };
@@ -26,7 +28,7 @@
             var index = self.$$watchers.indexOf(watcher);
             if (index >= 0) {
                 self.$$watchers.splice(index, 1);
-                //∑¿÷π‘⁄$digestOnce÷–±È¿˙À˘”–µƒwatcher ±∆‰÷–ƒ≥“ª∏ˆwatcherµƒlistener÷–…æµÙ∆‰À˚watcherµƒ«Èøˆ
+                //Èò≤Ê≠¢Âú®$digestOnce‰∏≠ÈÅçÂéÜÊâÄÊúâÁöÑwatcherÊó∂ÂÖ∂‰∏≠Êüê‰∏Ä‰∏™watcherÁöÑlistener‰∏≠Âà†ÊéâÂÖ∂‰ªñwatcherÁöÑÊÉÖÂÜµ
                 self.$root.$$lastDirtyWatch = null;
             }
         };
@@ -40,7 +42,7 @@
             var oldValue;
             _.forEachRight(scope.$$watchers, function (watcher) {
                 try {
-                    //≈–∂œwatcher «∑Ò¥Ê‘⁄ «“ÚŒ™”–ø…ƒ‹‘⁄$digest—≠ª∑watcherµƒπ˝≥Ã÷–ƒ≥“ª∏ˆwatcher‘⁄∆‰º‡Ã˝∫Ø ˝÷–ª·Ω´À˘”–µƒthis.$$watchers¿Ô√ÊÀ˘”–µƒwatcher»´≤ø…æµÙ
+                    //Âà§Êñ≠watcherÊòØÂê¶Â≠òÂú®ÊòØÂõ†‰∏∫ÊúâÂèØËÉΩÂú®$digestÂæ™ÁéØwatcherÁöÑËøáÁ®ã‰∏≠Êüê‰∏Ä‰∏™watcherÂú®ÂÖ∂ÁõëÂê¨ÂáΩÊï∞‰∏≠‰ºöÂ∞ÜÊâÄÊúâÁöÑthis.$$watchersÈáåÈù¢ÊâÄÊúâÁöÑwatcherÂÖ®ÈÉ®Âà†Êéâ
                     if (watcher) {
                         newValue = watcher.watchFn(scope);
                         oldValue = watcher.last;
@@ -111,10 +113,10 @@
         } else {
             return newValue === oldValue || (
                 typeof newValue === "number" &&
-                typeof oldValue === "number" &&
-                isNaN(newValue) &&
-                isNaN(oldValue)
-            );
+                    typeof oldValue === "number" &&
+                    isNaN(newValue) &&
+                    isNaN(oldValue)
+                );
         }
     };
     Scope.prototype.$eval = function (expr, locals) {
@@ -165,7 +167,7 @@
                 //    }
                 //    self.$$applyAsyncId = null;
                 //});
-                //_.bind() µ⁄“ª∏ˆ≤Œ ˝ «“™∞Û∂®µƒ∫Ø ˝£¨µ⁄∂˛∏ˆ≤Œ ˝ «∫Ø ˝¿Ô√Êµƒthis÷∏œÚ
+                //_.bind() Á¨¨‰∏Ä‰∏™ÂèÇÊï∞ÊòØË¶ÅÁªëÂÆöÁöÑÂáΩÊï∞ÔºåÁ¨¨‰∫å‰∏™ÂèÇÊï∞ÊòØÂáΩÊï∞ÈáåÈù¢ÁöÑthisÊåáÂêë
                 self.$apply(_.bind(self.$$flushApplyAsync, self));
             }, 0);
         }
@@ -241,7 +243,8 @@
             child.$$postDigestQueue = parent.$$postDigestQueue;
             child.$$applyAsyncQueue = parent.$$applyAsyncQueue;
         } else {
-            var ChildScope = function () { };
+            var ChildScope = function () {
+            };
             ChildScope.prototype = this;
             child = new ChildScope();
         }
@@ -328,8 +331,8 @@
                             oldValue[key] = newVal;
                         }
                     });
-                    //µΩƒø«∞newLengthº«¬ºnewValue¿Ô√Ê Ù–‘◊‹ ˝
-                    //oldLengthº«¬ºoldValue¿Ô√Ê√ª”–µƒnewValue÷–µƒ Ù–‘
+                    //Âà∞ÁõÆÂâçnewLengthËÆ∞ÂΩïnewValueÈáåÈù¢Â±ûÊÄßÊÄªÊï∞
+                    //oldLengthËÆ∞ÂΩïoldValueÈáåÈù¢Ê≤°ÊúâÁöÑnewValue‰∏≠ÁöÑÂ±ûÊÄß
                     if (oldLength > newLength) {
                         changeCount++;
                         _.forOwn(oldValue, function (oldVal, key) {
@@ -438,7 +441,8 @@
         }
     };
 
-    function initWatchVal() { }
+    function initWatchVal() {
+    }
 
     //Expressions and Filters
     var ESCAPES = {
@@ -450,7 +454,10 @@
         '\'': '\'',
         '"': '"'
     };
-    function Lexer() { }
+
+    function Lexer() {
+    }
+
     Lexer.prototype.lex = function (text) {
         this.text = text;
         this.index = 0;
@@ -463,7 +470,7 @@
                 this.readNumber();
             } else if (this.is('\'"')) {
                 this.readString(this.ch);
-            } else if (this.is('[],{}:.()')) {
+            } else if (this.is('[],{}:.()=')) {
                 this.tokens.push({
                     text: this.ch
                 });
@@ -585,6 +592,7 @@
     function AST(lexer) {
         this.lexer = lexer;
     }
+
     AST.Program = "Program";
     AST.Literal = "Literal";
     AST.ArrayExpression = "ArrayExpression";
@@ -594,6 +602,7 @@
     AST.ThisExpression = "ThisExpression";
     AST.MemberExpression = "MemberExpression";
     AST.CallExpression = "CallExpression";
+    AST.AssignmentExpression = "AssignmentExpression";
     AST.prototype.constants = {
         "null": { type: AST.Literal, value: null },
         "true": { type: AST.Literal, value: true },
@@ -604,10 +613,22 @@
         this.tokens = this.lexer.lex(text);
         return this.program();
     };
+    AST.prototype.assignment = function () {
+        var left = this.primary();
+        if (this.expect("=")) {
+            var right = this.primary();
+            return {
+                type: AST.AssignmentExpression,
+                left: left,
+                right: right
+            };
+        }
+        return left;
+    };
     AST.prototype.program = function () {
         return {
             type: AST.Program,
-            body: this.primary()
+            body: this.assignment()
         };
     };
     AST.prototype.primary = function () {
@@ -662,7 +683,7 @@
                     property.key = this.constant();
                 }
                 this.consume(':');
-                property.value = this.primary();
+                property.value = this.assignment();
                 properties.push(property);
             } while (this.expect(','));
         }
@@ -678,7 +699,7 @@
             name: this.consume().text
         };
     };
-    //π¶ƒ‹∫Õpeekœ‡Õ¨£¨∏Ωº”¡ÀΩ´eÀ˘‘⁄token…æ≥˝µƒπ¶ƒ‹
+    //ÂäüËÉΩÂíåpeekÁõ∏ÂêåÔºåÈôÑÂä†‰∫ÜÂ∞ÜeÊâÄÂú®tokenÂà†Èô§ÁöÑÂäüËÉΩ
     AST.prototype.expect = function (e1, e2, e3, e4) {
         var token = this.peek(e1, e2, e3, e4);
         if (token) {
@@ -692,7 +713,7 @@
                 if (this.peek(']')) {
                     break;
                 }
-                elements.push(this.primary());
+                elements.push(this.assignment());
             } while (this.expect(','));
         }
         this.consume(']');
@@ -701,7 +722,7 @@
             elements: elements
         };
     };
-    //≈–∂œeÀ˘‘⁄token «∑Ò‘⁄∂”Õ∑£¨ «µƒª∞∑µªÿ
+    //Âà§Êñ≠eÊâÄÂú®tokenÊòØÂê¶Âú®ÈòüÂ§¥ÔºåÊòØÁöÑËØùËøîÂõû
     AST.prototype.peek = function (e1, e2, e3, e4) {
         if (this.tokens.length > 0) {
             var text = this.tokens[0].text;
@@ -727,7 +748,7 @@
         var args = [];
         if (!this.peek(')')) {
             do {
-                args.push(this.primary());
+                args.push(this.assignment());
             } while (this.expect(','));
         }
         return args;
@@ -736,6 +757,7 @@
     function ASTCompiler(astBuilder) {
         this.astBuilder = astBuilder;
     }
+
     ASTCompiler.prototype.compile = function (text) {
         var ast = this.astBuilder.ast(text);
         this.state = {
@@ -747,7 +769,7 @@
         var fn = new Function('s', 'l', (this.state.vars.length ? 'var ' + this.state.vars.join(',') + ';' : '') + this.state.body.join(''));
         return fn;
     };
-    ASTCompiler.prototype.recurse = function (ast, context) {
+    ASTCompiler.prototype.recurse = function (ast, context, create) {
         var intoId;
         var _this = this;
         switch (ast.type) {
@@ -771,6 +793,9 @@
             case AST.Identifier:
                 intoId = this.nextId();
                 this.if_(this.getHasOwnProperty('l', ast.name), this.assign(intoId, this.nonComputedMember('l', ast.name)));
+                if (create) {
+                    this.if_(this.not(this.getHasOwnProperty('l', ast.name)) + ' && s && ' + this.not(this.getHasOwnProperty('s', ast.name)), this.assign(this.nonComputedMember('s', ast.name), '{}'));
+                }
                 this.if_(this.not(this.getHasOwnProperty('l', ast.name)) + ' && s', this.assign(intoId, this.nonComputedMember('s', ast.name)));
                 if (context) {
                     context.context = this.getHasOwnProperty('l', ast.name) + '?l:s';
@@ -782,18 +807,26 @@
                 return 's';
             case AST.MemberExpression:
                 intoId = this.nextId();
-                var left = this.recurse(ast.object);
+                var left = this.recurse(ast.object, undefined, create);
                 if (context) {
                     context.context = left;
                 }
                 if (ast.computed) {
                     var right = this.recurse(ast.property);
+                    if (create) {
+                        this.if_(this.not(this.computedMember(left, right)),
+                            this.assign(this.computedMember(left, right), "{}"));
+                    }
                     this.if_(left, this.assign(intoId, this.computedMember(left, right)));
                     if (context) {
                         context.name = right;
                         context.computed = true;
                     }
                 } else {
+                    if (create) {
+                        this.if_(this.not(this.nonComputedMember(left, ast.property.name)),
+                            this.assign(this.nonComputedMember(left, ast.property.name), "{}"));
+                    }
                     this.if_(left, this.assign(intoId, this.nonComputedMember(left, ast.property.name)));
                     if (context) {
                         context.name = ast.property.name;
@@ -816,6 +849,16 @@
                     }
                 }
                 return callee + '&&' + callee + '(' + args.join(',') + ')';
+            case AST.AssignmentExpression:
+                var leftContext = {};
+                this.recurse(ast.left, leftContext, true);
+                var leftExpr;
+                if (leftContext.computed) {
+                    leftExpr = this.computedMember(leftContext.context, leftContext.name);
+                } else {
+                    leftExpr = this.nonComputedMember(leftContext.context, leftContext.name);
+                }
+                return this.assign(leftExpr, this.recurse(ast.right));
         }
     };
     ASTCompiler.prototype.escape = function (value) {
@@ -827,7 +870,7 @@
             return value;
         }
     };
-    ASTCompiler.prototype.stringEscapeRegex = /[^ a-zA-Z0-9]/g;//◊¢“‚”–“ª∏ˆø’∏Ò
+    ASTCompiler.prototype.stringEscapeRegex = /[^ a-zA-Z0-9]/g;//Ê≥®ÊÑèÊúâ‰∏Ä‰∏™Á©∫Ê†º
     ASTCompiler.prototype.stringEscapeFn = function (c) {
         return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
     };
@@ -860,6 +903,7 @@
         this.ast = new AST(this.lexer);
         this.astCompiler = new ASTCompiler(this.ast);
     }
+
     Parser.prototype.parse = function (text) {
         return this.astCompiler.compile(text);
     };
