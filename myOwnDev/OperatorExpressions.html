@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OperatorExpressions</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        console.log("parses a unary +");
+        (function () {
+            //console.log(parse("+42"));
+            //console.log(parse("+a")({ a: 42 }));
+        })();
+        console.log("replaces undefined with zero for unary +");
+        (function () {
+            //console.log(parse("+a")({}));
+        })();
+        console.log("parses a unary !");
+        (function () {
+            //console.log(parse("!true")());
+            //console.log(parse("!42"));
+            //console.log(parse("!a")({ a: false }));
+            //console.log(parse("!!a")({ a: false }));
+        })();
+        console.log("parses a unary -");
+        (function () {
+            //console.log(parse("-42")());
+            //console.log(parse("-a")({ a: -42 }));
+            //console.log(parse("--a")({ a: -42 }));
+            //console.log(parse("-a")({}));
+        })();
+        console.log("parses a ! in a string");
+        (function () {
+            //console.log(parse("'!'")());
+        })();
+        console.log("Multiplicative Operators");
+        console.log("parses a multiplication");
+        (function () {
+            //console.log(parse("21 * 2")());
+        })();
+        console.log("parses a division");
+        (function () {
+            //console.log(parse("84 / 2")());
+        })();
+        console.log("parses a remainder");
+        (function () {
+            //console.log(parse("85 % 43")());
+        })();
+        console.log("parses several multiplicatives");
+        (function () {
+            //console.log(parse("36*2%5")());
+        })();
+        console.log("Additive Operators");
+        console.log("parses an addition");
+        (function () {
+            //console.log(parse("20+22")());
+        })();
+        console.log("parses a substraction");
+        (function () {
+            //console.log(parse("42-22")());
+        })();
+        console.log("parses multiplicatives on a higher percedence than additives");
+        (function () {
+            //console.log(parse("2+3*5")());
+            //console.log(parse("2+3*2+3")());
+        })();
+        console.log("substitutes undefined with zero in addition");
+        (function () {
+            //console.log(parse("a+22")());
+            //console.log(parse("42+a")());
+        })();
+        console.log("substitutes undefined with zero in subtraction");
+        (function () {
+            //console.log(parse("a-22")());
+            //console.log(parse("42-a")());
+        })();
+        console.log("Relational And Equality Operators");
+        console.log("parses relational operators");
+        (function () {
+            console.log(parse("1<2")());
+            console.log(parse("1<=2")());
+        })();
+        console.log("parses equality operators");
+        (function () {
+            console.log(parse("42==42")());
+            console.log(parse("42!==42")());
+        })();
+        console.log("parses relationals on a higher precedence than equality");
+        (function () {
+            console.log(parse("2=='2'>2==='2'"));
+        })();
+        console.log("parses additives on a higher precedence than relationals");
+        (function () {
+            console.log(parse("2+3<6-2"));
+        })();
+    </script>
+</head>
+<body>
+</body>
+</html>

@@ -312,10 +312,101 @@
         })();
         console.log("creates the objects in the assignment path that don't exist");
         (function () {
-            var fn = parse("some['nested'].property.path = 42");
-            var scope = {};
-            fn(scope);
-            console.log(scope.some.nested.property.path);
+            //var fn = parse("some['nested'].property.path = 42");
+            //var scope = {};
+            //fn(scope);
+            //console.log(scope.some.nested.property.path);
+        })();
+        console.log("doesn't allow calling the function constructor");
+        (function () {
+            //var fn = parse("aFunction.constructor('return window;')");
+            //fn({ aFunction: function () { }});
+        })();
+        console.log("doesn't allow accessing __proto__");
+        (function () {
+            //var fn = parse("obj.__proto__");
+            //fn({ obj: {}});
+        })();
+        console.log("doesn't allow calling __defineGetter__");
+        (function () {
+            //var fn = parse("obj.__defineGetter__('evil',fn)");
+            //fn({ obj: {}, fn: function () { }});
+        })();
+        console.log("doesn't allow calling __defineSetter__");
+        (function () {
+            //var fn = parse("obj.__defineSetter__('evil',fn)");
+            //fn({ obj: {}, fn: function () { }});
+        })();
+        console.log("doesn't allow calling __lookupGetter__");
+        (function () {
+            //var fn = parse("obj.__lookupGetter__('evil')");
+            //fn({ obj: {}});
+        })();
+        console.log("doesn't allow calling __lookupSetter__");
+        (function () {
+            //var fn = parse("obj.__lookupSetter__('evil')");
+            //fn({ obj: {}});
+        })();
+        console.log("doesn't allow accessing window as computed property");
+        (function () {
+            //var fn = parse("anObject['wnd']");
+            //fn({ anObject: { wnd: window } });
+        })();
+        console.log("doesn't allow accessing window as non-computed property");
+        (function () {
+            //var fn = parse("anObject.wnd");
+            //fn({ anObject: { wnd: window } });
+        })();
+        console.log("doesn't allow passing window as function argument");
+        (function () {
+            //var fn = parse("aFunction(wnd)");
+            //fn({ aFunction: function () { }, wnd: window });
+        })();
+        console.log("doesn't allow calling methods on window");
+        (function () {
+            //var fn = parse("wnd.scrollTo(0)");
+            //fn({ wnd: window });
+        })();
+        console.log("doesn't allow functions to return window");
+        (function () {
+            //var fn = parse("getWnd()");
+            //fn({ getWnd: _.constant(window) });
+        })();
+        console.log("doesn't allow assigning window");
+        (function () {
+            //var fn = parse("wnd=anObject");
+            //fn({ anObject: window });
+        })();
+        console.log("doesn't allow referencing window");
+        (function () {
+            //var fn = parse("wnd");
+            //fn({ wnd: window });
+        })();
+        console.log("doesn't allow calling functions on DOM elements");
+        (function () {
+            //var fn = parse("el.setAttribute('evil','true')");
+            //fn({ el: document.documentElement });
+        })();
+        console.log("doesn't allow calling the aliased function constructor");
+        (function () {
+            //var fn = parse("fnConstructor('return window')");
+            //fn({ fnConstructor: (function () { }).constructor });
+        })();
+        console.log("doesn't allow calling functions on Object");
+        (function () {
+            //var fn = parse("obj.create({})");
+            //fn({ obj: Object });
+        })();
+        console.log("ensure safe functions");
+        console.log("doesn't allow calling call");
+        (function () {
+            //var fn = parse("fun.call(obj)");
+            //fn({ fun: function () { }, obj: {}});
+        })();
+        console.log("doesn't allow calling apply");
+        (function () {
+            //var fn = parse("fun.apply(obj)");
+            //fn({ fun: function () { }, obj: {}});
         })();
     </script>
 </head>
