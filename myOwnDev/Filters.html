@@ -62,12 +62,103 @@
         console.log("Additional Filter Argumentss");
         console.log("can pass an additional argument to filters");
         (function () {
-            register("repeat", function () {
-                return function (s, times) {
-                    return _.repeat(s, times);
-                };
-            });
-            console.log(parse("'hello'|repeat:3")());
+            //register("repeat", function () {
+            //    return function (s, times) {
+            //        return _.repeat(s, times);
+            //    };
+            //});
+            //console.log(parse("'hello'|repeat:3")());
+        })();
+        console.log("can pass several additional arguments to filters");
+        (function () {
+            //register("surround", function () {
+            //    return function (s, left, right) {
+            //        return left + s + right;
+            //    };
+            //});
+            //var fn = parse("'hello'|surround:'*':'!'");
+            //console.log(fn());
+        })();
+        console.log("The filter filter");
+        console.log("filter filter");
+        (function () {
+            //console.log(filter("filter"));
+        })();
+        console.log("can filter an array with a predicate function");
+        (function () {
+            //var fn = parse("[1,2,3,4]|filter:isOdd");
+            //var scope = {
+            //    isOdd: function (n) {
+            //        return n % 2 !== 0;
+            //    }
+            //};
+            //console.log(fn(scope));
+        })();
+        console.log("FilterWithStrings");
+        console.log("can filter an array of strings with a string");
+        (function () {
+            //var fn = parse("arr|filter:'a'");
+            //console.log(fn({ arr: ["a", "b", "a"] }));
+        })();
+        console.log("filters an array of strings with substring matching");
+        (function () {
+            //var fn = parse("arr|filter:'o'");
+            //console.log(fn({ arr: ["quick", "brown", "fox"] }));
+        })();
+        console.log("filters an array of objects where any value matches");
+        (function () {
+            //var fn = parse("arr|filter:'o'");
+            //console.log(fn({
+            //    arr: [
+            //        { firstName: "John", lastName: "Brown" },
+            //        { firstName: "Jane", lastName: "Fox" },
+            //        { firstName: "Mary", lastName: "Quick" }
+            //    ]
+            //}));
+        })();
+        console.log("filters an array of objects where a nested value matches");
+        (function () {
+            //var fn = parse("arr|filter:'o'");
+            //console.log(fn({
+            //    arr: [
+            //        { name: { first: "John", last: "Brown" } },
+            //        { name: { first: "Jane", last: "Fox" } },
+            //        { name: { first: "Mary", last: "Quick" } },
+            //    ]
+            //}));
+        })();
+        console.log("filters an array of arrays where a nested value matches");
+        (function () {
+            //var fn = parse("arr|filter:'o'");
+            //console.log(fn({
+            //    arr: [
+            //        [{ name: "John" }, { name: "Mary" }],
+            //        [{ name: "Jane" }]
+            //    ]
+            //}));
+        })();
+        console.log("Filtering With Other Primitives");
+        console.log("filter with a number");
+        (function () {
+            //var fn = parse("arr|filter:42");
+            //console.log(fn({
+            //    arr: [
+            //        { name: "Mary", age: 42 },
+            //        { name: "John", age: 43 },
+            //        { name: "Jane", age: 44 }
+            //    ]
+            //}));
+        })();
+        console.log("filter with a boolean value");
+        (function () {
+            //var fn = parse("arr|filter:true");
+            //console.log(fn({
+            //    arr: [
+            //        { name: "Mary", amin: true },
+            //        { name: "John", amin: true },
+            //        { name: "Jane", amin: false }
+            //    ]
+            //}));
         })();
     </script>
 </head>
