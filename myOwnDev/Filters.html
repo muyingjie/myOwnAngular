@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        console.log("Filter Registration");
+        console.log("can be registered and obtained");
+        (function () {
+            //var myFilter = function () { };
+            //var myFilterFactory = function () {
+            //    return myFilter;
+            //};
+            //register("my", myFilterFactory);
+            //console.log(filter("my"));
+        })();
+        console.log("allows registering multiple filters with an object");
+        (function () {
+            //var myFilter = function () { };
+            //var myOtherFilter = function () { };
+            //register({
+            //    my: function () {
+            //        return myFilter;
+            //    },
+            //    myOther: function () {
+            //        return myOtherFilter;
+            //    }
+            //});
+            //console.log(filter("my"));
+            //console.log(filter("myOther"));
+        })();
+        console.log("filter expressions");
+        console.log("can parse filter expressions");
+        (function () {
+            //register("upcase", function () {
+            //    return function (str) {
+            //        return str.toUpperCase();
+            //    };
+            //});
+            //var fn = parse("aString|upcase");
+            //console.log(fn({aString:"Hello"}));
+        })();
+        console.log("filter chain expressions");
+        console.log("can parse filter chain expressions");
+        (function () {
+            //register("upcase", function () {
+            //    return function (s) {
+            //        return s.toUpperCase();
+            //    };
+            //});
+            //register("exclamate", function () {
+            //    return function (s) {
+            //        return s + '!';
+            //    };
+            //});
+            //var fn = parse("'hello'|upcase|exclamate");
+            //console.log(fn());
+        })();
+        console.log("Additional Filter Argumentss");
+        console.log("can pass an additional argument to filters");
+        (function () {
+            register("repeat", function () {
+                return function (s, times) {
+                    return _.repeat(s, times);
+                };
+            });
+            console.log(parse("'hello'|repeat:3")());
+        })();
+    </script>
+</head>
+<body>
+</body>
+</html>

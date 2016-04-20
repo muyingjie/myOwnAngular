@@ -78,21 +78,67 @@
         console.log("Relational And Equality Operators");
         console.log("parses relational operators");
         (function () {
-            console.log(parse("1<2")());
-            console.log(parse("1<=2")());
+            //console.log(parse("1<2")());
+            //console.log(parse("1<=2")());
         })();
         console.log("parses equality operators");
         (function () {
-            console.log(parse("42==42")());
-            console.log(parse("42!==42")());
+            //console.log(parse("42==42")());
+            //console.log(parse("42!==42")());
         })();
         console.log("parses relationals on a higher precedence than equality");
         (function () {
-            console.log(parse("2=='2'>2==='2'"));
+            //console.log(parse("2=='2'>2==='2'")());
         })();
         console.log("parses additives on a higher precedence than relationals");
         (function () {
-            console.log(parse("2+3<6-2"));
+            //console.log(parse("2+3<6-2")());
+        })();
+        console.log("Logical Operators AND and OR");
+        (function () {
+            //console.log(parse("true && true")());
+            //console.log(parse("true || true || false"));
+        })();
+        console.log("short-circutes AND and OR");
+        (function () {
+            //var invoked;
+            //var scope = { fn: function () { invoked = true; } };
+            //parse("false && fn()")(scope);
+            //console.log(invoked);
+        })();
+        console.log("parses AND with a higher precedence than OR");
+        (function () {
+            //console.log(parse("false&&true||true")());
+        })();
+        console.log("parses OR with a lower precedence than equality");
+        (function () {
+            //console.log(parse("1===2||2===2")());
+        })();
+        console.log("The Ternary Operator");
+        console.log("parses the ternary expression");
+        (function () {
+            //console.log(parse("a===42?true:false")({ a: 42 }));
+        })();
+        console.log("parses OR with a higher precedence than ternary");
+        (function () {
+            //console.log(parse("0||1?0||2:0||3")());
+        })();
+        console.log("Altering the precedence order with parentheses");
+        console.log("parses parentheses altering precedence order");
+        (function () {
+            //console.log(parse("21*(3-1)")());
+        })();
+        console.log("Statements");
+        console.log("parses several statements");
+        (function () {
+            var fn = parse("a=1;b=2;c=3");
+            var scope = {};
+            fn(scope);
+            console.log(scope);
+        })();
+        console.log("returns the value of the last statement");
+        (function () {
+            console.log(parse("a=1;b=2;a+b")({}));
         })();
     </script>
 </head>

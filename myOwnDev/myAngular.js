@@ -462,6 +462,7 @@
         '*': true,
         '/': true,
         '%': true,
+        '=': true,
         '==': true,
         '!=': true,
         '===': true,
@@ -469,7 +470,10 @@
         '<': true,
         '>': true,
         '<=': true,
-        '>=': true
+        '>=': true,
+        '&&': true,
+        '||': true,
+        '|': true
     };
 
     function Lexer() {
@@ -487,7 +491,7 @@
                 this.readNumber();
             } else if (this.is('\'"')) {
                 this.readString(this.ch);
-            } else if (this.is('[],{}:.()=')) {
+            } else if (this.is('[],{}:.()?;')) {
                 this.tokens.push({
                     text: this.ch
                 });
@@ -642,6 +646,8 @@
     AST.AssignmentExpression = "AssignmentExpression";
     AST.UnaryExpression = "UnaryExpression";
     AST.BinaryExpression = "BinaryExpression";
+    AST.LogicalExpression = "LogicalExpression";
+    AST.ConditionalExpression = "ConditionalExptession";
     AST.prototype.constants = {
         "null": { type: AST.Literal, value: null },
         "true": { type: AST.Literal, value: true },
@@ -653,9 +659,9 @@
         return this.program();
     };
     AST.prototype.assignment = function () {
-        var left = this.equality();
+        var left = this.ternary();
         if (this.expect("=")) {
-            var right = this.equality();
+            var right = this.ternary();
             return {
                 type: AST.AssignmentExpression,
                 left: left,
@@ -665,14 +671,25 @@
         return left;
     };
     AST.prototype.program = function () {
-        return {
-            type: AST.Program,
-            body: this.assignment()
-        };
+        var body = [];
+        while (true) {
+            if (this.tokens.length) {
+                body.push(this.filter());
+            }
+            if (!this.expect(';')) {
+                return {
+                    type: AST.Program,
+                    body: body
+                };
+            }
+        }
     };
     AST.prototype.primary = function () {
         var primary;
-        if (this.expect('[')) {
+        if (this.expect('(')) {
+            primary = this.filter();
+            this.consume(')');
+        } else if (this.expect('[')) {
             primary = this.arrayDeclaration();
         } else if (this.expect('{')) {
             primary = this.object();
@@ -856,6 +873,60 @@
         }
         return left;
     };
+    AST.prototype.logicalOR = function () {
+        var left = this.logicalAND();
+        var token;
+        while ((token = this.expect("||"))) {
+            left = {
+                type: AST.LogicalExpression,
+                left: left,
+                operator: token.text,
+                right: this.logicalAND()
+            };
+        }
+        return left;
+    };
+    AST.prototype.logicalAND = function () {
+        var left = this.equality();
+        var token;
+        while ((token = this.expect("&&"))) {
+            left = {
+                type: AST.LogicalExpression,
+                left: left,
+                operator: token.text,
+                right: this.equality
+            };
+        }
+        return left;
+    };
+    AST.prototype.ternary = function () {
+        var test = this.logicalOR();
+        if (this.expect('?')) {
+            var consequent = this.assignment();
+            if (this.consume(':')) {
+                var alternate = this.assignment();
+                return {
+                    type: AST.ConditionalExpression,
+                    test: test,
+                    consequent: consequent,
+                    alternate: alternate
+                };
+            }
+        }
+        return test;
+    };
+    AST.prototype.filter = function () {
+        var left = this.assignment();
+        while (this.expect('|')) {
+            left = {
+                type: AST.CallExpression,
+                callee: this.identifier(),
+                arguments: [left],
+                filter: true
+            };
+        }
+        return left;
+    };
 
     function ASTCompiler(astBuilder) {
         this.astBuilder = astBuilder;
@@ -866,10 +937,12 @@
         this.state = {
             body: [],
             nextId: 0,
-            vars: []
+            vars: [],
+            filters: {}
         };
         this.recurse(ast);
-        var fnString = "var fn=function(s,l){" +
+        var fnString = this.filterPrefix() +
+            "var fn=function(s,l){" +
             (this.state.vars.length ? "var " + this.state.vars.join(',') + ';' : '') +
             this.state.body.join('') +
             "}; return fn;";
@@ -878,18 +951,23 @@
             "ensureSafeObject",
             "ensureSafeFunction",
             "ifDefined",
+            "filter",
             fnString)(
             ensureSafeMemberName,
             ensureSafeObject,
             ensureSafeFunction,
-            ifDefined);
+            ifDefined,
+            filter);
     };
     ASTCompiler.prototype.recurse = function (ast, context, create) {
         var intoId;
         var _this = this;
         switch (ast.type) {
             case AST.Program:
-                this.state.body.push("return ", this.recurse(ast.body), ';');
+                _.forEach(_.initial(ast.body), function (stmt) {
+                    _this.state.body.push(_this.recurse(stmt), ';');
+                });
+                this.state.body.push("return ", this.recurse(_.last(ast.body)), ';');
                 break;
             case AST.Literal:
                 return this.escape(ast.value);
@@ -954,22 +1032,34 @@
                 }
                 return intoId;
             case AST.CallExpression:
+                var callContext;
+                var callee;
+                var args;
                 var _this = this;
-                var callContext = {};
-                var callee = this.recurse(ast.callee, callContext);
-                var args = _.map(ast.arguments, function (arg) {
-                    return "ensureSafeObject(" + _this.recurse(arg) + ")";
-                });
-                if (callContext.name) {
-                    this.addEnsureSafeObject(callContext.context);
-                    if (callContext.computed) {
-                        callee = this.computedMember(callContext.context, callContext.name);
-                    } else {
-                        callee = this.nonComputedMember(callContext.context, callContext.name);
+                if (ast.filter) {
+                    callee = this.filter(ast.callee.name);
+                    args = _.map(ast.arguments, function (arg) {
+                        return _this.recurse(arg);
+                    });
+                    return callee + '(' + args + ')';
+                } else {
+                    callContext = {};
+                    callee = this.recurse(ast.callee, callContext);
+                    args = _.map(ast.arguments, function (arg) {
+                        return "ensureSafeObject(" + _this.recurse(arg) + ")";
+                    });
+                    if (callContext.name) {
+                        this.addEnsureSafeObject(callContext.context);
+                        if (callContext.computed) {
+                            callee = this.computedMember(callContext.context, callContext.name);
+                        } else {
+                            callee = this.nonComputedMember(callContext.context, callContext.name);
+                        }
                     }
+                    this.addEnsureSafeFunction(callee);
+                    return callee + '&&ensureSafeObject(' + callee + '(' + args.join(',') + '))';
                 }
-                this.addEnsureSafeFunction(callee);
-                return callee + '&&ensureSafeObject(' + callee + '(' + args.join(',') + '))';
+                break;
             case AST.AssignmentExpression:
                 var leftContext = {};
                 this.recurse(ast.left, leftContext, true);
@@ -979,7 +1069,7 @@
                 } else {
                     leftExpr = this.nonComputedMember(leftContext.context, leftContext.name);
                 }
-                return this.assign(leftExpr, "ensureSafeObject" + this.recurse(ast.right) + ")");
+                return this.assign(leftExpr, "ensureSafeObject(" + this.recurse(ast.right) + ")");
             case AST.UnaryExpression:
                 return ast.operator + '(' + this.ifDefined(this.recurse(ast.argument), 0) + ')';
             case AST.BinaryExpression:
@@ -992,7 +1082,18 @@
                         ast.operator +
                         '(' + this.recurse(ast.right) + ')';
                 }
-
+            case AST.LogicalExpression:
+                intoId = this.nextId();
+                this.state.body.push(this.assign(intoId, this.recurse(ast.left)));
+                this.if_(ast.operator === "&&" ? intoId : this.not(intoId), this.assign(intoId, this.recurse(ast.right)));
+                return intoId;
+            case AST.ConditionalExpression:
+                intoId = this.nextId();
+                var testId = this.nextId();
+                this.state.body.push(this.assign(testId, this.recurse(ast.test)));
+                this.if_(testId, this.assign(intoId, this.recurse(ast.consequent)));
+                this.if_(this.not(testId), this.assign(intoId, this.recurse(ast.alternate)));
+                return intoId;
         }
     };
     ASTCompiler.prototype.escape = function (value) {
@@ -1020,9 +1121,11 @@
     ASTCompiler.prototype.assign = function (id, value) {
         return id + '=' + value + ';';
     };
-    ASTCompiler.prototype.nextId = function () {
+    ASTCompiler.prototype.nextId = function (skip) {
         var id = 'v' + (this.state.nextId++);
-        this.state.vars.push(id);
+        if (!skip) {
+            this.state.vars.push(id);
+        }
         return id;
     };
     ASTCompiler.prototype.not = function (e) {
@@ -1042,6 +1145,23 @@
     };
     ASTCompiler.prototype.ifDefined = function (value, defaultValue) {
         return "ifDefined(" + value + ',' + this.escape(defaultValue) + ')';
+    };
+    ASTCompiler.prototype.filter = function (name) {
+        if (!this.state.filters.hasOwnProperty("name")) {
+            this.state.filters[name] = this.nextId(true);
+        }
+        return this.state.filters[name];
+    };
+    ASTCompiler.prototype.filterPrefix = function () {
+        var _this = this;
+        if (_.isEmpty(this.state.filters)) {
+            return "";
+        } else {
+            var parts = _.map(this.state.filters, function (varName, filterName) {
+                return varName + "=" + "filter(" + _this.escape(filterName) + ')';
+            });
+            return "var " + parts.join(',') + ";";
+        }
     };
 
     function Parser(lexer) {
@@ -1098,6 +1218,27 @@
         return typeof value === 'undefined' ? defaultValue : value;
     }
 
+    //filters
+    var filters = {};
+
+    function register(name, factory) {
+        if (_.isObject(name)) {
+            return _.map(name, function (factory, name) {
+                return register(name, factory);
+            });
+        } else {
+            var filter = factory();
+            filters[name] = filter;
+            return filter;
+        }
+    }
+
+    function filter(name) {
+        return filters[name];
+    }
+
     window.parse = parse;
     window.Scope = Scope;
+    window.filter = filter;
+    window.register = register;
 })();
