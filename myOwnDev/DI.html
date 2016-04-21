@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DI</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        console.log("The angular Global");
+        console.log("setupModuleLoader");
+        console.log("exposes angular on the window");
+        (function () {
+            //setupModuleLoader(window);
+            //console.log(window.angular);
+        })();
+        console.log("Initializing The Global Just Once");
+        (function () {
+            //setupModuleLoader(window);
+            //var ng = window.angular;
+            //setupModuleLoader(window);
+            //console.log(window.angular);
+        })();
+        console.log("The module Module");
+        console.log("exposes the angular module function");
+        (function () {
+            //setupModuleLoader(window);
+            //console.log(window.angular.module);
+        })();
+        console.log("exposes the angular module function just once");
+        (function () {
+            //setupModuleLoader(window);
+            //var module = window.angular.module;
+            //setupModuleLoader(window);
+            //console.log(window.angular.module);
+        })();
+
+        setupModuleLoader(window);
+
+        console.log("Registering A Module");
+        console.log("allows registering a module");
+        (function () {
+            //var myModule = window.angular.module("myModule", []);
+            //console.log(myModule);
+            //console.log(myModule.name);
+        })();
+        console.log("replaces a module when registered with same name again");
+        (function () {
+            //var myModule = window.angular.module("myModule", []);
+            //var myNewModule = window.angular.module("myModule", []);
+            //console.log(myNewModule === myModule);
+        })();
+        console.log("attaches the requires array to the registered module");
+        (function () {
+            //var myModule = window.angular.module("myModule", ["myOtherModule"]);
+            //console.log(myModule.requires);
+        })();
+        console.log("Getting A Registered Module");
+        console.log("allows getting a module");
+        (function () {
+            //var myModule = window.angular.module("myModule", []);
+            //var gotModule = window.angular.module("myModule");
+
+            //console.log(gotModule);
+            //console.log(gotModule === myModule);
+        })();
+        console.log("throws when trying to get a nonexistent module");
+        (function () {
+            //console.log(window.angular.module("myModule"));
+        })();
+        console.log("doesn't allow a module to be called hasOwnProperty");
+        (function () {
+            //console.log(window.angular.module("hasOwnProperty", []));
+        })();
+        console.log("The Injector");
+        console.log("can be created");
+        (function () {
+            //var injector = createInjector([]);
+            //console.log(injector);
+        })();
+        console.log("Registering A Constant");
+        console.log("has a constant that has been registered to a module");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.constant("aConstant", 42);
+            //var injector = createInjector(["myModule"]);
+            //console.log(injector.has("aConstant"));
+        })();
+        console.log("doesn't have a non-registered constant");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //var injector = createInjector(["myModule"]);
+            //console.log(injector.has("aConstant"));
+        })();
+        console.log("doesn't allow a constant called hasOwnProperty");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.constant("hasOwnProperty", _.constant(false));
+            //createInjector(["myModule"]);
+        })();
+        console.log("can return a registered constant");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.constant("aConstant", 42);
+            //var injector = createInjector(["myModule"]);
+            //console.log(injector.get("aConstant"));
+        })();
+        console.log("Requiring Other Modules");
+        console.log("loads multiple modules");
+        (function () {
+            //var module1 = angular.module("myModule", []);
+            //var module2 = angular.module("myOtherModule", []);
+            //module1.constant("aConstant", 42);
+            //module2.constant("anotherConstant", 43);
+            //var injector = createInjector(["myModule", "myOtherModule"]);
+
+            //console.log(injector.has("aConstant"));
+            //console.log(injector.has("anotherConstant"));
+        })();
+        console.log("loads the required modules of a module");
+        (function () {
+            //var module1 = angular.module("myModule", []);
+            //var module2 = angular.module("myOtherModule", ["myModule"]);
+            //module1.constant("aConstant", 42);
+            //module2.constant("anotherConstant", 43);
+            //var injector = createInjector(["myOtherModule"]);
+
+            //console.log(injector.has("aConstant"));
+            //console.log(injector.has("anotherConstant"));
+        })();
+        console.log("loads the transitively required modules of a module");
+        (function () {
+            //var module1 = angular.module("myModule", []);
+            //var module2 = angular.module("myOtherModule", ["myModule"]);
+            //var module3 = angular.module("myThirdModule", ["myOtherModule"]);
+            //module1.constant("aConstant", 42);
+            //module2.constant("anotherConstant", 43);
+            //module3.constant("aThirdConstant", 44);
+            //var injector = createInjector(["myThirdModule"]);
+
+            //console.log(injector.has("aConstant"));
+            //console.log(injector.has("anotherConstant"));
+            //console.log(injector.has("aThirdConstant"));
+        })();
+        console.log("loads each module only once");
+        (function () {
+            //angular.module("myModule", ["myOtherModule"]);
+            //angular.module("myOtherModule", ["myModule"]);
+            //createInjector(["myModule"]);
+        })();
+        console.log("DI");
+        console.log("invokes an annotated function with dependency injection");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.constant("a", 1);
+            //module.constant("b", 2);
+            //var injector = createInjector(["myModule"]);
+
+            //var fn = function (one, two) { return one + two; };
+            //fn.$inject = ["a", "b"];
+
+            //console.log(injector.invoke(fn));
+        })();
+        console.log("Rejecting Non-String DI Tokens");
+        console.log("doensn't accept non-strings as injection tokens");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.constant("a", 1);
+            //var injector = createInjector(["myModule"]);
+
+            //var fn = function (one, two) { return one + two; };
+            //fn.$inject = ["a", 2];
+            //console.log(injector.invoke(fn));
+        })();
+        console.log("Binding this in Injected Functions");
+        console.log("invokes a function with the given this context");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.constant("a", 1);
+            //var injector = createInjector(["myModule"]);
+
+            //var obj = {
+            //    two: 2,
+            //    fn: function (one) {
+            //        return one + this.two;
+            //    }
+            //};
+            //obj.fn.$inject = ["a"];
+            //console.log(injector.invoke(obj.fn, obj));
+        })();
+        console.log("Providing Locals to Injected Functions");
+        console.log("overrides dependencies with locals when invoking");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.constant("a", 1);
+            //module.constant("b", 2);
+            //var injector = createInjector(["myModule"]);
+
+            //var fn = function (one, two) { return one + two; };
+            //fn.$inject = ["a", "b"];
+
+            //console.log(injector.invoke(fn, undefined, { b: 3 }));
+        })();
+        console.log("Array-Style Dependency Annotation");
+        console.log("returns the $inject annotation of a function when it has one");
+        (function () {
+            //var injector = createInjector([]);
+            //var fn = function () { };
+            //fn.$inject = ["a", "b"];
+            //console.log(injector.annotate(fn));
+        })();
+    </script>
+</head>
+<body>
+</body>
+</html>
