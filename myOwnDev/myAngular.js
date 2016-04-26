@@ -1627,6 +1627,7 @@
     var FN_ARG = /^\s*(_?)(\S+)\1\s*$/;
     var STRIP_COMMENTS = /(\/\/.*$)|(\/\*.*?\*\/)/mg;
     //注：里面的问号起到了惰性匹配的作用，当匹配 a,/*b,*/c/*,d*/ 这种有多段注释的参数列表时不会将/*b,*/c/*,d*/匹配而是分别匹配/*b,*/和/*,d*/
+    var INSTANTIATING = {};
 
     function setupModuleLoader(window) {
         var ensure = function (obj, name, factory) {
@@ -1639,12 +1640,19 @@
                 throw "hasOwnProperty is not a valid module name";
             }
             var invokeQueue = [];
+
+            var invokeLater = function (method, arrayMethod) {
+                return function () {
+                    invokeQueue[arrayMethod || "push"]([method, arguments]);
+                    return moduleInstance;
+                };
+            };
+
             var moduleInstance = {
                 name: name,
                 requires: requires,
-                constant: function (key, value) {
-                    invokeQueue.push(["constant", [key, value]]);
-                },
+                constant: invokeLater("constant", "unshift"),
+                provider: invokeLater("provider"),
                 _invokeQueue: invokeQueue
             };
             modules[name] = moduleInstance;
@@ -1671,15 +1679,31 @@
         });
     }
     function createInjector(modulesToLoad, strictDi) {
-        var cache = {};
+        var providerCache = {};
+        var providerInjector = createInternalInjector(providerCache, function () {
+            throw "Unknown provider: " + path.join("<-");
+        });
+        var instanceCache = {};
+        var instanceInjector = createInternalInjector(instanceCache, function (name) {
+            var provider = providerInjector.get(name + "Provider");
+            return instanceInjector.invoke(provider.$get, provider);
+        });
         var loadedModules = {};
+        var path = [];
         strictDi = (strictDi === true);
         var $provide = {
             constant: function (key, value) {
                 if (key === "hasOwnProperty") {
                     throw "hasOwnProperty is not a valid constant name!";
                 }
-                cache[key] = value;
+                providerCache[key] = value;
+                instanceCache[key] = value;
+            },
+            provider: function (key, provider) {
+                if (_.isFunction(provider)) {
+                    provider = providerInjector.instantiate(provider);
+                }
+                providerCache[key + "Provider"] = provider;
             }
         };
 
@@ -1702,25 +1726,57 @@
             }
         }
 
-        function invoke(fn, self, locals) {
-            var args = _.map(annotate(fn), function (token) {
-                if (_.isString(token)) {
-                    return locals && locals.hasOwnProperty(token) ? locals[token] : cache[token];
+        function createInternalInjector(cache, factoryFn) {
+            function getService(name) {
+                if (cache.hasOwnProperty(name)) {
+                    if (cache[name] === INSTANTIATING) {
+                        throw new Error("Circular dependency found: " + name + "<-" + path.join("<-"));
+                    }
+                    return cache[name];
                 } else {
-                    throw "Incorrect injection token! Expected a string,got " + token;
+                    path.unshift(name);
+                    cache[name] = INSTANTIATING;
+                    try {
+                        return cache[name] = factoryFn(name);
+                    } finally {
+                        path.shift();
+                        if (cache[name] === INSTANTIATING) {
+                            delete cache[name];
+                        }
+                    }
                 }
-            });
-            if (_.isArray(fn)) {
-                fn = _.last(fn);
             }
-            return fn.apply(self, args);
-        }
 
-        function instantiate(Type, locals) {
-            var UnwrappedType = _.isArray(Type) ? _.last(Type) : Type;
-            var instance = Object.create(UnwrappedType.prototype);
-            invoke(Type, instance, locals);
-            return instance;
+            function invoke(fn, self, locals) {
+                var args = _.map(annotate(fn), function (token) {
+                    if (_.isString(token)) {
+                        return locals && locals.hasOwnProperty(token) ? locals[token] : getService(token);
+                    } else {
+                        throw "Incorrect injection token! Expected a string,got " + token;
+                    }
+                });
+                if (_.isArray(fn)) {
+                    fn = _.last(fn);
+                }
+                return fn.apply(self, args);
+            }
+
+            function instantiate(Type, locals) {
+                var UnwrappedType = _.isArray(Type) ? _.last(Type) : Type;
+                var instance = Object.create(UnwrappedType.prototype);
+                invoke(Type, instance, locals);
+                return instance;
+            }
+
+            return {
+                has: function (name) {
+                    return cache.hasOwnProperty(name) || providerCache.hasOwnProperty(name + "Provider");
+                },
+                get: getService,
+                annotate: annotate,
+                invoke: invoke,
+                instantiate: instantiate
+            };
         }
 
         _.forEach(modulesToLoad, function loadModule(moduleName) {
@@ -1735,17 +1791,8 @@
                 });
             }
         });
-        return {
-            has: function (key) {
-                return cache.hasOwnProperty(key);
-            },
-            get: function (key) {
-                return cache[key];
-            },
-            annotate: annotate,
-            invoke: invoke,
-            instantiate: instantiate
-        };
+
+        return instanceInjector;
     }
 
     window.parse = parse;
