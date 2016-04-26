@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        var scope = new Scope();
+        console.log("Integrating Expressions to Scopes");
+        console.log("returns the function itself when given one");
+        (function () {
+            //var fn = function () { };
+            //console.log(parse(fn));
+        })();
+        console.log("still returns a function when given no argument");
+        (function () {
+            //console.log(parse());
+        })();
+        console.log("accepts expressions for watch functions");
+        (function () {
+            //var theValue;
+            //scope.aValue = 42;
+            //scope.$watch("aValue", function (newValue, oldValue, scope) {
+            //    theValue = newValue;
+            //});
+            //scope.$digest();
+            //console.log(theValue);
+        })();
+        console.log("accepts expressions in $eval");
+        (function () {
+            //console.log(scope.$eval("42"));
+        })();
+        console.log("accepts expressions in $apply");
+        (function () {
+            //scope.aFunction = _.constant(42);
+            //console.log(scope.$apply("aFunction()"));
+        })();
+        console.log("accepts expressions in $evalAsync");
+        (function () {
+            //var called;
+            //scope.aFunction = function () {
+            //    called = true;
+            //};
+            //scope.$evalAsync("aFunction()");
+            //scope.$$postDigest(function () {
+            //    console.log(called);
+            //});
+        })();
+        console.log("Literal And Constant Expressions");
+        console.log("marks identifiers non-constant");
+        (function () {
+            //var fn = parse("a");
+            //console.log(fn.constant);
+        })();
+    </script>
+</head>
+<body></body>
+</html>
