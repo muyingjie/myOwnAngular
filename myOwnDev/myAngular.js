@@ -1,457 +1,470 @@
 ﻿(function () {
-    function Scope() {
-        //双$符号代表是私有属性
-        this.$$watchers = [];
-        this.$$lastDirtyWatch = null;
-        this.$$asyncQueue = [];
-        this.$$applyAsyncQueue = [];
-        this.$$applyAsyncId = null;
-        this.$$postDigestQueue = [];
-        this.$root = this;
-        this.$$children = [];
-        this.$$listeners = {};
-        this.$$phase = null;
-    }
-
-    Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
-        var self = this;
-
-        watchFn = parse(watchFn);
-        if (watchFn.$$watchDelegate) {
-            return watchFn.$$watchDelegate(self, listenerFn, valueEq, watchFn);
-        }
-
-        var watcher = {
-            watchFn: watchFn,
-            listenerFn: listenerFn || function () {
-            },
-            valueEq: !!valueEq,
-            last: initWatchVal
-        };
-        this.$$watchers.unshift(watcher);
-        this.$root.$$lastDirtyWatch = null;
-        return function () {
-            var index = self.$$watchers.indexOf(watcher);
-            if (index >= 0) {
-                self.$$watchers.splice(index, 1);
-                //防止在$digestOnce中遍历所有的watcher时其中某一个watcher的listener中删掉其他watcher的情况
-                self.$root.$$lastDirtyWatch = null;
+    function $RootScopeProvider() {
+        var TTL = 10;
+        this.digestTtl = function (value) {
+            if (_.isNumber(value)) {
+                TTL = value;
             }
+            return TTL;
         };
-    };
-    Scope.prototype.$$digestOnce = function () {
-        var self = this;
-        var dirty;
-        var continueLoop = true;
-        this.$$everyScope(function (scope) {
-            var newValue;
-            var oldValue;
-            _.forEachRight(scope.$$watchers, function (watcher) {
-                try {
-                    //判断watcher是否存在是因为有可能在$digest循环watcher的过程中某一个watcher在其监听函数中会将所有的this.$$watchers里面所有的watcher全部删掉
-                    if (watcher) {
-                        newValue = watcher.watchFn(scope);
-                        oldValue = watcher.last;
-                        //if (newValue !== oldValue) {
-                        if (!scope.$$areEqual(newValue, oldValue, watcher.valueEq)) {
-                            self.$root.$$lastDirtyWatch = watcher;
-                            //watcher.last = newValue;
-                            watcher.last = watcher.valueEq ? _.cloneDeep(newValue) : newValue;
-                            watcher.listenerFn(
-                                newValue,
-                                (oldValue == initWatchVal ? newValue : oldValue),
-                                scope
-                            );
-                            dirty = true;
-                        } else if (self.$root.$$lastDirtyWatch === watcher) {
-                            continueLoop = false;
-                            return false;
+        this.$get = ["$parse", function ($parse) {
+            function Scope() {
+                //双$符号代表是私有属性
+                this.$$watchers = [];
+                this.$$lastDirtyWatch = null;
+                this.$$asyncQueue = [];
+                this.$$applyAsyncQueue = [];
+                this.$$applyAsyncId = null;
+                this.$$postDigestQueue = [];
+                this.$root = this;
+                this.$$children = [];
+                this.$$listeners = {};
+                this.$$phase = null;
+            }
+
+            Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
+                var self = this;
+
+                watchFn = $parse(watchFn);
+                if (watchFn.$$watchDelegate) {
+                    return watchFn.$$watchDelegate(self, listenerFn, valueEq, watchFn);
+                }
+
+                var watcher = {
+                    watchFn: watchFn,
+                    listenerFn: listenerFn || function () {
+                    },
+                    valueEq: !!valueEq,
+                    last: initWatchVal
+                };
+                this.$$watchers.unshift(watcher);
+                this.$root.$$lastDirtyWatch = null;
+                return function () {
+                    var index = self.$$watchers.indexOf(watcher);
+                    if (index >= 0) {
+                        self.$$watchers.splice(index, 1);
+                        //防止在$digestOnce中遍历所有的watcher时其中某一个watcher的listener中删掉其他watcher的情况
+                        self.$root.$$lastDirtyWatch = null;
+                    }
+                };
+            };
+            Scope.prototype.$$digestOnce = function () {
+                var self = this;
+                var dirty;
+                var continueLoop = true;
+                this.$$everyScope(function (scope) {
+                    var newValue;
+                    var oldValue;
+                    _.forEachRight(scope.$$watchers, function (watcher) {
+                        try {
+                            //判断watcher是否存在是因为有可能在$digest循环watcher的过程中某一个watcher在其监听函数中会将所有的this.$$watchers里面所有的watcher全部删掉
+                            if (watcher) {
+                                newValue = watcher.watchFn(scope);
+                                oldValue = watcher.last;
+                                //if (newValue !== oldValue) {
+                                if (!scope.$$areEqual(newValue, oldValue, watcher.valueEq)) {
+                                    self.$root.$$lastDirtyWatch = watcher;
+                                    //watcher.last = newValue;
+                                    watcher.last = watcher.valueEq ? _.cloneDeep(newValue) : newValue;
+                                    watcher.listenerFn(
+                                        newValue,
+                                        (oldValue == initWatchVal ? newValue : oldValue),
+                                        scope
+                                    );
+                                    dirty = true;
+                                } else if (self.$root.$$lastDirtyWatch === watcher) {
+                                    continueLoop = false;
+                                    return false;
+                                }
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    });
+                    return continueLoop;
+                });
+
+                return dirty;
+            };
+            Scope.prototype.$digest = function () {
+                var ttl = TTL;//ttl means Time To Live
+                var dirty;
+                this.$root.$$lastDirtyWatch = null;
+                this.$beginPhase("$digest");
+
+                if (this.$root.$$applyAsyncId) {
+                    clearTimeout(this.$root.$$applyAsyncId);
+                    this.$$flushApplyAsync();
+                }
+
+                do {
+                    while (this.$$asyncQueue.length) {
+                        try {
+                            var asyncTask = this.$$asyncQueue.shift();
+                            asyncTask.scope.$eval(asyncTask.expression);
+                        } catch (e) {
+                            console.error(e);
                         }
                     }
-                } catch (e) {
-                    console.error(e);
-                }
-            });
-            return continueLoop;
-        });
-
-        return dirty;
-    };
-    Scope.prototype.$digest = function () {
-        var ttl = 10;//ttl means Time To Live
-        var dirty;
-        this.$root.$$lastDirtyWatch = null;
-        this.$beginPhase("$digest");
-
-        if (this.$root.$$applyAsyncId) {
-            clearTimeout(this.$root.$$applyAsyncId);
-            this.$$flushApplyAsync();
-        }
-
-        do {
-            while (this.$$asyncQueue.length) {
-                try {
-                    var asyncTask = this.$$asyncQueue.shift();
-                    asyncTask.scope.$eval(asyncTask.expression);
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-            dirty = this.$$digestOnce();
-            if ((dirty || this.$$asyncQueue.length) && !(ttl--)) {
+                    dirty = this.$$digestOnce();
+                    if ((dirty || this.$$asyncQueue.length) && !(ttl--)) {
+                        this.$clearPhase();
+                        throw TTL + " digest iterations reached";
+                    }
+                } while (dirty || this.$$asyncQueue.length);
                 this.$clearPhase();
-                throw "10 digest iterations reached";
-            }
-        } while (dirty || this.$$asyncQueue.length);
-        this.$clearPhase();
 
-        while (this.$$postDigestQueue.length) {
-            try {
-                this.$$postDigestQueue.shift()();
-            } catch (e) {
-                console.error(e);
-            }
-        }
-    };
-    Scope.prototype.$$areEqual = function (newValue, oldValue, valueEq) {
-        if (valueEq) {
-            return _.isEqual(newValue, oldValue);
-        } else {
-            return newValue === oldValue || (
-                typeof newValue === "number" &&
-                    typeof oldValue === "number" &&
-                    isNaN(newValue) &&
-                    isNaN(oldValue)
-                );
-        }
-    };
-    Scope.prototype.$eval = function (expr, locals) {
-        return parse(expr)(this, locals);
-    };
-    Scope.prototype.$apply = function (expr) {
-        try {
-            this.$beginPhase("$apply");
-            return this.$eval(expr);
-        } finally {
-            this.$clearPhase();
-            this.$root.$digest();
-        }
-    };
-    Scope.prototype.$evalAsync = function (expr) {
-        var self = this;
-        if (!self.$$phase && !self.$$asyncQueue.length) {
-            setTimeout(function () {
-                if (self.$$asyncQueue.length) {
-                    self.$root.$digest();
-                }
-            }, 0);
-        }
-        self.$$asyncQueue.push({
-            scope: self,
-            expression: expr
-        });
-    };
-    Scope.prototype.$beginPhase = function (phase) {
-        if (this.$$phase) {
-            throw this.$$phase + " already in progress";
-        }
-        this.$$phase = phase;
-    };
-    Scope.prototype.$clearPhase = function () {
-        this.$$phase = null;
-    };
-    Scope.prototype.$applyAsync = function (expr) {
-        var self = this;
-        self.$$applyAsyncQueue.push(function () {
-            self.$eval(expr);
-        });
-        if (self.$root.$$applyAsyncId === null) {
-            self.$root.$$applyAsyncId = setTimeout(function () {
-                //self.$apply(function () {
-                //    while (self.$$applyAsyncQueue.length) {
-                //        self.$$applyAsyncQueue.shift()();
-                //    }
-                //    self.$$applyAsyncId = null;
-                //});
-                //_.bind() 第一个参数是要绑定的函数，第二个参数是函数里面的this指向
-                self.$apply(_.bind(self.$$flushApplyAsync, self));
-            }, 0);
-        }
-    };
-    Scope.prototype.$$flushApplyAsync = function () {
-        while (this.$$applyAsyncQueue.length) {
-            try {
-                this.$$applyAsyncQueue.shift()();
-            } catch (e) {
-                console.error(e);
-            }
-        }
-        this.$root.$$applyAsyncId = null;
-    };
-    Scope.prototype.$$postDigest = function (fn) {
-        this.$$postDigestQueue.push(fn);
-    };
-    Scope.prototype.$watchGroup = function (watchFns, listenerFn) {
-        var self = this;
-        var newValues = new Array(watchFns.length);
-        var oldValues = new Array(watchFns.length);
-        var changeReactionScheduled = false;
-        var firstRun = true;
-
-        if (watchFns.length === 0) {
-            var shouldCall = true;
-            self.$evalAsync(function () {
-                if (shouldCall) {
-                    listenerFn(newValues, newValues, self);
-                }
-            });
-            return function () {
-                shouldCall = false;
-            };
-        }
-
-        function watchGroupListener() {
-            if (firstRun) {
-                firstRun = false;
-                listenerFn(newValues, newValues, self);
-            } else {
-                listenerFn(newValues, oldValues, self);
-            }
-            changeReactionScheduled = false;
-        }
-
-        var destroyFunctions = _.map(watchFns, function (watchFn, i) {
-            return self.$watch(watchFn, function (newValue, oldValue) {
-                newValues[i] = newValue;
-                oldValues[i] = oldValue;
-                if (!changeReactionScheduled) {
-                    changeReactionScheduled = true;
-                    self.$evalAsync(watchGroupListener);
-                }
-            });
-        });
-
-        return function () {
-            _.forEach(destroyFunctions, function (destroyFunction) {
-                destroyFunction();
-            });
-        };
-    };
-
-    //Scope Inheritance
-    Scope.prototype.$new = function (isolated, parent) {
-        var child;
-        parent = parent || this;
-        if (isolated) {
-            child = new Scope();
-            child.$root = parent.$root;
-            child.$$asyncQueue = parent.$$asyncQueue;
-            child.$$postDigestQueue = parent.$$postDigestQueue;
-            child.$$applyAsyncQueue = parent.$$applyAsyncQueue;
-        } else {
-            var ChildScope = function () {
-            };
-            ChildScope.prototype = this;
-            child = new ChildScope();
-        }
-        parent.$$children.push(child);
-        child.$$watchers = [];
-        child.$$listeners = {};
-        child.$$children = [];
-        child.$parent = parent;
-        return child;
-    };
-
-    Scope.prototype.$$everyScope = function (fn) {
-        if (fn(this)) {
-            return this.$$children.every(function (child) {
-                return child.$$everyScope(fn);
-            });
-        } else {
-            return false;
-        }
-    };
-
-    Scope.prototype.$destroy = function () {
-        this.$broadcast("$destroy");
-        if (this.$parent) {
-            var siblings = this.$parent.$$children;
-            var indexOfThis = siblings.indexOf(this);
-            if (indexOfThis >= 0) {
-                siblings.splice(indexOfThis, 1);
-            }
-        }
-        this.$$watchers = null;
-        this.$$listeners = {};
-    };
-
-    Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
-        var self = this;
-        var newValue;
-        var oldValue;
-        var oldLength;
-        var veryOldValue;
-        var trackVeryOldValue = (listenerFn.length > 1);
-        var changeCount = 0;
-        var firstRun = true;
-
-        watchFn = parse(watchFn);
-
-        var internalWatchFn = function (scope) {
-            var newLength;
-            newValue = watchFn(scope);
-
-            if (_.isObject(newValue)) {
-                if (_.isArrayLike(newValue)) {
-                    if (!_.isArray(oldValue)) {
-                        changeCount++;
-                        oldValue = [];
+                while (this.$$postDigestQueue.length) {
+                    try {
+                        this.$$postDigestQueue.shift()();
+                    } catch (e) {
+                        console.error(e);
                     }
-                    if (newValue.length !== oldValue.length) {
-                        changeCount++;
-                        oldValue.length = newValue.length;
-                    }
-                    _.forEach(newValue, function (newItem, i) {
-                        var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i]);
-                        if (!bothNaN && newItem !== oldValue[i]) {
-                            changeCount++;
-                            oldValue[i] = newItem;
+                }
+            };
+            Scope.prototype.$$areEqual = function (newValue, oldValue, valueEq) {
+                if (valueEq) {
+                    return _.isEqual(newValue, oldValue);
+                } else {
+                    return newValue === oldValue || (
+                        typeof newValue === "number" &&
+                            typeof oldValue === "number" &&
+                            isNaN(newValue) &&
+                            isNaN(oldValue)
+                        );
+                }
+            };
+            Scope.prototype.$eval = function (expr, locals) {
+                return $parse(expr)(this, locals);
+            };
+            Scope.prototype.$apply = function (expr) {
+                try {
+                    this.$beginPhase("$apply");
+                    return this.$eval(expr);
+                } finally {
+                    this.$clearPhase();
+                    this.$root.$digest();
+                }
+            };
+            Scope.prototype.$evalAsync = function (expr) {
+                var self = this;
+                if (!self.$$phase && !self.$$asyncQueue.length) {
+                    setTimeout(function () {
+                        if (self.$$asyncQueue.length) {
+                            self.$root.$digest();
                         }
+                    }, 0);
+                }
+                self.$$asyncQueue.push({
+                    scope: self,
+                    expression: expr
+                });
+            };
+            Scope.prototype.$beginPhase = function (phase) {
+                if (this.$$phase) {
+                    throw this.$$phase + " already in progress";
+                }
+                this.$$phase = phase;
+            };
+            Scope.prototype.$clearPhase = function () {
+                this.$$phase = null;
+            };
+            Scope.prototype.$applyAsync = function (expr) {
+                var self = this;
+                self.$$applyAsyncQueue.push(function () {
+                    self.$eval(expr);
+                });
+                if (self.$root.$$applyAsyncId === null) {
+                    self.$root.$$applyAsyncId = setTimeout(function () {
+                        //self.$apply(function () {
+                        //    while (self.$$applyAsyncQueue.length) {
+                        //        self.$$applyAsyncQueue.shift()();
+                        //    }
+                        //    self.$$applyAsyncId = null;
+                        //});
+                        //_.bind() 第一个参数是要绑定的函数，第二个参数是函数里面的this指向
+                        self.$apply(_.bind(self.$$flushApplyAsync, self));
+                    }, 0);
+                }
+            };
+            Scope.prototype.$$flushApplyAsync = function () {
+                while (this.$$applyAsyncQueue.length) {
+                    try {
+                        this.$$applyAsyncQueue.shift()();
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+                this.$root.$$applyAsyncId = null;
+            };
+            Scope.prototype.$$postDigest = function (fn) {
+                this.$$postDigestQueue.push(fn);
+            };
+            Scope.prototype.$watchGroup = function (watchFns, listenerFn) {
+                var self = this;
+                var newValues = new Array(watchFns.length);
+                var oldValues = new Array(watchFns.length);
+                var changeReactionScheduled = false;
+                var firstRun = true;
+
+                if (watchFns.length === 0) {
+                    var shouldCall = true;
+                    self.$evalAsync(function () {
+                        if (shouldCall) {
+                            listenerFn(newValues, newValues, self);
+                        }
+                    });
+                    return function () {
+                        shouldCall = false;
+                    };
+                }
+
+                function watchGroupListener() {
+                    if (firstRun) {
+                        firstRun = false;
+                        listenerFn(newValues, newValues, self);
+                    } else {
+                        listenerFn(newValues, oldValues, self);
+                    }
+                    changeReactionScheduled = false;
+                }
+
+                var destroyFunctions = _.map(watchFns, function (watchFn, i) {
+                    return self.$watch(watchFn, function (newValue, oldValue) {
+                        newValues[i] = newValue;
+                        oldValues[i] = oldValue;
+                        if (!changeReactionScheduled) {
+                            changeReactionScheduled = true;
+                            self.$evalAsync(watchGroupListener);
+                        }
+                    });
+                });
+
+                return function () {
+                    _.forEach(destroyFunctions, function (destroyFunction) {
+                        destroyFunction();
+                    });
+                };
+            };
+
+            //Scope Inheritance
+            Scope.prototype.$new = function (isolated, parent) {
+                var child;
+                parent = parent || this;
+                if (isolated) {
+                    child = new Scope();
+                    child.$root = parent.$root;
+                    child.$$asyncQueue = parent.$$asyncQueue;
+                    child.$$postDigestQueue = parent.$$postDigestQueue;
+                    child.$$applyAsyncQueue = parent.$$applyAsyncQueue;
+                } else {
+                    var ChildScope = function () {
+                    };
+                    ChildScope.prototype = this;
+                    child = new ChildScope();
+                }
+                parent.$$children.push(child);
+                child.$$watchers = [];
+                child.$$listeners = {};
+                child.$$children = [];
+                child.$parent = parent;
+                return child;
+            };
+
+            Scope.prototype.$$everyScope = function (fn) {
+                if (fn(this)) {
+                    return this.$$children.every(function (child) {
+                        return child.$$everyScope(fn);
                     });
                 } else {
-                    if (!_.isObject(oldValue) || _.isArrayLike(oldValue)) {
-                        changeCount++;
-                        oldValue = {};
-                        oldLength = 0;
+                    return false;
+                }
+            };
+
+            Scope.prototype.$destroy = function () {
+                this.$broadcast("$destroy");
+                if (this.$parent) {
+                    var siblings = this.$parent.$$children;
+                    var indexOfThis = siblings.indexOf(this);
+                    if (indexOfThis >= 0) {
+                        siblings.splice(indexOfThis, 1);
                     }
-                    newLength = 0;
-                    _.forOwn(newValue, function (newVal, key) {
-                        newLength++;
-                        if (oldValue.hasOwnProperty(key)) {
-                            var bothNaN = _.isNaN(newVal) && _.isNaN(oldValue[key]);
-                            if (!bothNaN && oldValue[key] !== newVal) {
+                }
+                this.$$watchers = null;
+                this.$$listeners = {};
+            };
+
+            Scope.prototype.$watchCollection = function (watchFn, listenerFn) {
+                var self = this;
+                var newValue;
+                var oldValue;
+                var oldLength;
+                var veryOldValue;
+                var trackVeryOldValue = (listenerFn.length > 1);
+                var changeCount = 0;
+                var firstRun = true;
+
+                watchFn = $parse(watchFn);
+
+                var internalWatchFn = function (scope) {
+                    var newLength;
+                    newValue = watchFn(scope);
+
+                    if (_.isObject(newValue)) {
+                        if (_.isArrayLike(newValue)) {
+                            if (!_.isArray(oldValue)) {
                                 changeCount++;
-                                oldValue[key] = newVal;
+                                oldValue = [];
                             }
+                            if (newValue.length !== oldValue.length) {
+                                changeCount++;
+                                oldValue.length = newValue.length;
+                            }
+                            _.forEach(newValue, function (newItem, i) {
+                                var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i]);
+                                if (!bothNaN && newItem !== oldValue[i]) {
+                                    changeCount++;
+                                    oldValue[i] = newItem;
+                                }
+                            });
                         } else {
-                            changeCount++;
-                            oldLength++;
-                            oldValue[key] = newVal;
-                        }
-                    });
-                    //到目前newLength记录newValue里面属性总数
-                    //oldLength记录oldValue里面没有的newValue中的属性
-                    if (oldLength > newLength) {
-                        changeCount++;
-                        _.forOwn(oldValue, function (oldVal, key) {
-                            if (!newValue.hasOwnProperty(key)) {
-                                oldLength--;
-                                delete oldValue[key];
+                            if (!_.isObject(oldValue) || _.isArrayLike(oldValue)) {
+                                changeCount++;
+                                oldValue = {};
+                                oldLength = 0;
                             }
-                        });
+                            newLength = 0;
+                            _.forOwn(newValue, function (newVal, key) {
+                                newLength++;
+                                if (oldValue.hasOwnProperty(key)) {
+                                    var bothNaN = _.isNaN(newVal) && _.isNaN(oldValue[key]);
+                                    if (!bothNaN && oldValue[key] !== newVal) {
+                                        changeCount++;
+                                        oldValue[key] = newVal;
+                                    }
+                                } else {
+                                    changeCount++;
+                                    oldLength++;
+                                    oldValue[key] = newVal;
+                                }
+                            });
+                            //到目前newLength记录newValue里面属性总数
+                            //oldLength记录oldValue里面没有的newValue中的属性
+                            if (oldLength > newLength) {
+                                changeCount++;
+                                _.forOwn(oldValue, function (oldVal, key) {
+                                    if (!newValue.hasOwnProperty(key)) {
+                                        oldLength--;
+                                        delete oldValue[key];
+                                    }
+                                });
+                            }
+                        }
+                    } else {
+                        if (!self.$$areEqual(newValue, oldValue, false)) {
+                            changeCount++;
+                        }
+                        oldValue = newValue;
+                    }
+
+                    return changeCount;
+                };
+
+                var internalListenerFn = function () {
+                    if (firstRun) {
+                        listenerFn(newValue, newValue, self);
+                        firstRun = false;
+                    } else {
+                        listenerFn(newValue, oldValue, self);
+                    }
+
+                    if (trackVeryOldValue) {
+                        veryOldValue = _.clone(newValue);
+                    }
+                };
+
+                return this.$watch(internalWatchFn, internalListenerFn);
+            };
+
+            Scope.prototype.$on = function (eventName, listener) {
+                var listeners = this.$$listeners[eventName];
+                if (!listeners) {
+                    this.$$listeners[eventName] = listeners = [];
+                }
+                listeners.push(listener);
+                return function () {
+                    var index = listeners.indexOf(listener);
+                    if (index >= 0) {
+                        listeners[index] = null;
+                    }
+                };
+            };
+
+            Scope.prototype.$emit = function (eventName) {
+                var propagationStopped = false;
+                var event = {
+                    name: eventName,
+                    targetScope: this,
+                    stopPropagation: function () {
+                        propagationStopped = true;
+                    },
+                    preventDefault: function () {
+                        event.defaultPrevented = true;
+                    }
+                };
+                var listenerArgs = [event].concat([].splice.call(arguments, 1));
+                var scope = this;
+                do {
+                    event.currentScope = scope;
+                    scope.$$fireEventOnScope(eventName, listenerArgs);
+                    scope = scope.$parent;
+                } while (scope && !propagationStopped);
+                event.currentScope = null;
+                return event;
+            };
+
+            Scope.prototype.$broadcast = function (eventName) {
+                var event = {
+                    name: eventName,
+                    targetScope: this,
+                    preventDefault: function () {
+                        event.defaultPrevented = true;
+                    }
+                };
+                var listenerArgs = [event].concat([].splice.call(arguments, 1));
+                this.$$everyScope(function (scope) {
+                    event.currentScope = scope;
+                    scope.$$fireEventOnScope(eventName, listenerArgs);
+                    return true;
+                });
+                event.currentScope = null;
+                return event;
+            };
+
+            Scope.prototype.$$fireEventOnScope = function (eventName, listenerArgs) {
+                var listeners = this.$$listeners[eventName] || [];
+                var i = 0;
+                while (i < listeners.length) {
+                    if (listeners[i] === null) {
+                        listeners.splice(i, 1);
+                    } else {
+                        try {
+                            listeners[i].apply(null, listenerArgs);
+                        } catch (e) {
+                            console.log(e);
+                        }
+                        i++;
                     }
                 }
-            } else {
-                if (!self.$$areEqual(newValue, oldValue, false)) {
-                    changeCount++;
-                }
-                oldValue = newValue;
+            };
+
+            function initWatchVal() {
             }
 
-            return changeCount;
-        };
-
-        var internalListenerFn = function () {
-            if (firstRun) {
-                listenerFn(newValue, newValue, self);
-                firstRun = false;
-            } else {
-                listenerFn(newValue, oldValue, self);
-            }
-
-            if (trackVeryOldValue) {
-                veryOldValue = _.clone(newValue);
-            }
-        };
-
-        return this.$watch(internalWatchFn, internalListenerFn);
-    };
-
-    Scope.prototype.$on = function (eventName, listener) {
-        var listeners = this.$$listeners[eventName];
-        if (!listeners) {
-            this.$$listeners[eventName] = listeners = [];
-        }
-        listeners.push(listener);
-        return function () {
-            var index = listeners.indexOf(listener);
-            if (index >= 0) {
-                listeners[index] = null;
-            }
-        };
-    };
-
-    Scope.prototype.$emit = function (eventName) {
-        var propagationStopped = false;
-        var event = {
-            name: eventName,
-            targetScope: this,
-            stopPropagation: function () {
-                propagationStopped = true;
-            },
-            preventDefault: function () {
-                event.defaultPrevented = true;
-            }
-        };
-        var listenerArgs = [event].concat([].splice.call(arguments, 1));
-        var scope = this;
-        do {
-            event.currentScope = scope;
-            scope.$$fireEventOnScope(eventName, listenerArgs);
-            scope = scope.$parent;
-        } while (scope && !propagationStopped);
-        event.currentScope = null;
-        return event;
-    };
-
-    Scope.prototype.$broadcast = function (eventName) {
-        var event = {
-            name: eventName,
-            targetScope: this,
-            preventDefault: function () {
-                event.defaultPrevented = true;
-            }
-        };
-        var listenerArgs = [event].concat([].splice.call(arguments, 1));
-        this.$$everyScope(function (scope) {
-            event.currentScope = scope;
-            scope.$$fireEventOnScope(eventName, listenerArgs);
-            return true;
-        });
-        event.currentScope = null;
-        return event;
-    };
-
-    Scope.prototype.$$fireEventOnScope = function (eventName, listenerArgs) {
-        var listeners = this.$$listeners[eventName] || [];
-        var i = 0;
-        while (i < listeners.length) {
-            if (listeners[i] === null) {
-                listeners.splice(i, 1);
-            } else {
-                try {
-                    listeners[i].apply(null, listenerArgs);
-                } catch (e) {
-                    console.log(e);
-                }
-                i++;
-            }
-        }
-    };
-
-    function initWatchVal() {
+            var $rootScope = new Scope();
+            return $rootScope;
+        }];
     }
-
     //Expressions and Filters
     var ESCAPES = {
         'n': '\n',
@@ -940,15 +953,16 @@
         return left;
     };
 
-    function ASTCompiler(astBuilder) {
+    function ASTCompiler(astBuilder, $filter) {
         this.astBuilder = astBuilder;
+        this.$filter = $filter;
     }
 
     ASTCompiler.prototype.compile = function (text) {
         var ast = this.astBuilder.ast(text);
         var extra = "";
         var _this = this;
-        markConstantAndWatchExpressions(ast);
+        markConstantAndWatchExpressions(ast, this.$filter);
         this.state = {
             nextId: 0,
             fn: { body: [], vars: [] },
@@ -993,7 +1007,7 @@
             ensureSafeObject,
             ensureSafeFunction,
             ifDefined,
-            filter);
+            this.$filter);
         fn.literal = isLiteral(ast);
         fn.constant = ast.constant;
         return fn;
@@ -1225,10 +1239,10 @@
         return result.join("");
     };
 
-    function Parser(lexer) {
+    function Parser(lexer, $filter) {
         this.lexer = lexer;
         this.ast = new AST(this.lexer);
-        this.astCompiler = new ASTCompiler(this.ast);
+        this.astCompiler = new ASTCompiler(this.ast, $filter);
     }
 
     Parser.prototype.parse = function (text) {
@@ -1259,30 +1273,34 @@
         }
     }
 
-    function parse(expr) {
-        switch (typeof expr) {
-            case "string":
-                var lexer = new Lexer();
-                var parser = new Parser(lexer);
-                var oneTime = false;
-                if (expr.charAt(0) === ":" && expr.charAt(1) === ":") {
-                    oneTime = true;
-                    expr = expr.substring(2);
+    function $ParseProvider() {
+        this.$get = ["$filter", function ($filter) {
+            return function (expr) {
+                switch (typeof expr) {
+                    case "string":
+                        var lexer = new Lexer();
+                        var parser = new Parser(lexer, $filter);
+                        var oneTime = false;
+                        if (expr.charAt(0) === ":" && expr.charAt(1) === ":") {
+                            oneTime = true;
+                            expr = expr.substring(2);
+                        }
+                        var parseFn = parser.parse(expr);
+                        if (parseFn.constant) {
+                            parseFn.$$watchDelegate = constantWhichDelegate;
+                        } else if (oneTime) {
+                            parseFn.$$watchDelegate = parseFn.literal ? oneTimeLiteralWatchDelegate : oneTimeWatchDelegate;
+                        } else if (parseFn.inputs) {
+                            parseFn.$$watchDelegate = inputsWatchDelegate;
+                        }
+                        return parseFn;
+                    case "function":
+                        return expr;
+                    default:
+                        return _.noop;
                 }
-                var parseFn = parser.parse(expr);
-                if (parseFn.constant) {
-                    parseFn.$$watchDelegate = constantWhichDelegate;
-                } else if (oneTime) {
-                    parseFn.$$watchDelegate = parseFn.literal ? oneTimeLiteralWatchDelegate : oneTimeWatchDelegate;
-                } else if (parseFn.inputs) {
-                    parseFn.$$watchDelegate = inputsWatchDelegate;
-                }
-                return parseFn;
-            case "function":
-                return expr;
-            default:
-                return _.noop;
-        }
+            };
+        }];
     }
 
     function inputsWatchDelegate(scope, listenerFn, valueEq, watchFn) {
@@ -1418,14 +1436,14 @@
             );
     }
 
-    function markConstantAndWatchExpressions(ast) {
+    function markConstantAndWatchExpressions(ast, $filter) {
         var allConstants;
         var argsToWatch;
         switch (ast.type) {
             case AST.Program:
                 allConstants = true;
                 _.forEach(ast.body, function (expr) {
-                    markConstantAndWatchExpressions(expr);
+                    markConstantAndWatchExpressions(expr, $filter);
                     allConstants = allConstants && expr.constant;
                 });
                 ast.constant = allConstants;
@@ -1442,7 +1460,7 @@
                 allConstants = true;
                 argsToWatch = [];
                 _.forEach(ast.elements, function (element) {
-                    markConstantAndWatchExpressions(element);
+                    markConstantAndWatchExpressions(element, $filter);
                     allConstants = allConstants && element.constant;
                     if (!element.constant) {
                         argsToWatch.push.apply(argsToWatch, element.toWatch);
@@ -1455,7 +1473,7 @@
                 allConstants = true;
                 argsToWatch = [];
                 _.forEach(ast.properties, function (property) {
-                    markConstantAndWatchExpressions(property.value);
+                    markConstantAndWatchExpressions(property.value, $filter);
                     allConstants = allConstants && property.value.constant;
                     if (!property.value.constant) {
                         argsToWatch.push.apply(argsToWatch, property.value.toWatch);
@@ -1469,19 +1487,19 @@
                 ast.toWatch = [];
                 break;
             case AST.MemberExpression:
-                markConstantAndWatchExpressions(ast.object);
+                markConstantAndWatchExpressions(ast.object, $filter);
                 if (ast.computed) {
-                    markConstantAndWatchExpressions(ast.property);
+                    markConstantAndWatchExpressions(ast.property, $filter);
                 }
                 ast.constant = ast.object.constant && (!ast.computed || ast.property.constant);
                 ast.toWatch = [ast];
                 break;
             case AST.CallExpression:
-                var stateless = ast.filter && !filter(ast.callee.name).$stateful;
+                var stateless = ast.filter && !$filter(ast.callee.name).$stateful;
                 allConstants = stateless ? true : false;
                 argsToWatch = [];
                 _.forEach(ast.arguments, function (arg) {
-                    markConstantAndWatchExpressions(arg);
+                    markConstantAndWatchExpressions(arg, $filter);
                     allConstants = allConstants && arg.constant;
                     if (!arg.constant) {
                         argsToWatch.push.apply(argsToWatch, arg.toWatch);
@@ -1491,57 +1509,61 @@
                 ast.toWatch = stateless ? argsToWatch : [ast];
                 break;
             case AST.AssignmentExpression:
-                markConstantAndWatchExpressions(ast.left);
-                markConstantAndWatchExpressions(ast.right);
+                markConstantAndWatchExpressions(ast.left, $filter);
+                markConstantAndWatchExpressions(ast.right, $filter);
                 ast.constant = ast.left.constant && ast.right.constant;
                 ast.toWatch = [ast];
                 break;
             case AST.UnaryExpression:
-                markConstantAndWatchExpressions(ast.argument);
+                markConstantAndWatchExpressions(ast.argument, $filter);
                 ast.constant = ast.argument.constant;
                 ast.toWatch = ast.argument.toWatch;
                 break;
             case AST.BinaryExpression:
-                markConstantAndWatchExpressions(ast.left);
-                markConstantAndWatchExpressions(ast.right);
+                markConstantAndWatchExpressions(ast.left, $filter);
+                markConstantAndWatchExpressions(ast.right, $filter);
                 ast.constant = ast.left.constant && ast.right.constant;
                 ast.toWatch = ast.left.toWatch.concat(ast.right.toWatch);
                 break;
             case AST.LogicalExpression:
-                markConstantAndWatchExpressions(ast.left);
-                markConstantAndWatchExpressions(ast.right);
+                markConstantAndWatchExpressions(ast.left, $filter);
+                markConstantAndWatchExpressions(ast.right, $filter);
                 ast.constant = ast.left.constant && ast.right.constant;
                 ast.toWatch = [ast];
                 break;
             case AST.ConditionalExpression:
-                markConstantAndWatchExpressions(ast.test);
-                markConstantAndWatchExpressions(ast.consequent);
-                markConstantAndWatchExpressions(ast.alternate);
+                markConstantAndWatchExpressions(ast.test, $filter);
+                markConstantAndWatchExpressions(ast.consequent, $filter);
+                markConstantAndWatchExpressions(ast.alternate, $filter);
                 ast.constant = ast.test.constant && ast.consequent.constant && ast.alternate.constant;
                 ast.toWatch = [ast];
                 break;
         }
     }
 
-    //filters
-    var filters = {};
+    function $FilterProvider($provide) {
+        //filters
+        var filters = {};
 
-    function register(name, factory) {
-        if (_.isObject(name)) {
-            return _.map(name, function (factory, name) {
-                return register(name, factory);
-            });
-        } else {
-            var filter = factory();
-            filters[name] = filter;
-            return filter;
-        }
+        this.register = function (name, factory) {
+            if (_.isObject(name)) {
+                return _.map(name, function (factory, name) {
+                    return this.register(name, factory);
+                }, this);
+            } else {
+                return $provide.factory(name + "Filter", factory);
+            }
+        };
+
+        this.$get = ["$injector", function ($injector) {
+            return function filter(name) {
+                return $injector.get(name + "Filter");
+            };
+        }];
+
+        this.register("filter", filterFilter);
     }
-
-    function filter(name) {
-        return filters[name];
-    }
-
+    $FilterProvider.$inject = ["$provide"];
     function filterFilter() {
         return function (array, filterExpr, comparator) {
             var predicateFn;
@@ -1620,7 +1642,7 @@
         }
     }
 
-    register("filter", filterFilter);
+    //register("filter", filterFilter);
 
     //Modules
     var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
@@ -1635,15 +1657,17 @@
         };
         var angular = ensure(window, "angular", Object);
 
-        var createModule = function (name, requires, modules) {
+        var createModule = function (name, requires, modules, configFn) {
             if (name === "hasOwnProperty") {
                 throw "hasOwnProperty is not a valid module name";
             }
             var invokeQueue = [];
+            var configBlocks = [];
 
-            var invokeLater = function (method, arrayMethod) {
+            var invokeLater = function (service, method, arrayMethod, queue) {
                 return function () {
-                    invokeQueue[arrayMethod || "push"]([method, arguments]);
+                    queue = queue || invokeQueue;
+                    queue[arrayMethod || "push"]([service, method, arguments]);
                     return moduleInstance;
                 };
             };
@@ -1651,10 +1675,26 @@
             var moduleInstance = {
                 name: name,
                 requires: requires,
-                constant: invokeLater("constant", "unshift"),
-                provider: invokeLater("provider"),
-                _invokeQueue: invokeQueue
+                constant: invokeLater("$provide", "constant", "unshift"),
+                provider: invokeLater("$provide", "provider"),
+                factory: invokeLater("$provide", "factory"),
+                value: invokeLater("$provide", "value"),
+                service: invokeLater("$provide", "service"),
+                decorator: invokeLater("$provide", "decorator"),
+                filter: invokeLater("$filterProvider", "register"),
+                config: invokeLater("$injector", "invoke", "push", configBlocks),
+                run: function (fn) {
+                    moduleInstance._runBlocks.push(fn);
+                    return moduleInstance;
+                },
+                _invokeQueue: invokeQueue,
+                _configBlocks: configBlocks,
+                _runBlocks: []
             };
+
+            if (configFn) {
+                moduleInstance.config(configFn);
+            }
             modules[name] = moduleInstance;
             return moduleInstance;
         };
@@ -1669,9 +1709,9 @@
 
         ensure(angular, "module", function () {
             var modules = {};
-            return function (name, requires) {
+            return function (name, requires, configFn) {
                 if (requires) {
-                    return createModule(name, requires, modules);
+                    return createModule(name, requires, modules, configFn);
                 } else {
                     return getModule(name, modules);
                 }
@@ -1680,18 +1720,27 @@
     }
     function createInjector(modulesToLoad, strictDi) {
         var providerCache = {};
-        var providerInjector = createInternalInjector(providerCache, function () {
+        var providerInjector = providerCache.$injector = createInternalInjector(providerCache, function () {
             throw "Unknown provider: " + path.join("<-");
         });
         var instanceCache = {};
-        var instanceInjector = createInternalInjector(instanceCache, function (name) {
+        var instanceInjector = instanceCache.$injector = createInternalInjector(instanceCache, function (name) {
             var provider = providerInjector.get(name + "Provider");
             return instanceInjector.invoke(provider.$get, provider);
         });
-        var loadedModules = {};
+        var loadedModules = new HashMap();
         var path = [];
         strictDi = (strictDi === true);
-        var $provide = {
+        function enforceReturnValue(factoryFn) {
+            return function () {
+                var value = instanceInjector.invoke(factoryFn);
+                if (_.isUndefined(value)) {
+                    throw "factory must return a value";
+                }
+                return value;
+            };
+        }
+        providerCache.$provide = {
             constant: function (key, value) {
                 if (key === "hasOwnProperty") {
                     throw "hasOwnProperty is not a valid constant name!";
@@ -1704,6 +1753,28 @@
                     provider = providerInjector.instantiate(provider);
                 }
                 providerCache[key + "Provider"] = provider;
+            },
+            factory: function (key, factoryFn, enforce) {
+                this.provider(key, {
+                    $get: enforce === false ? factoryFn : enforceReturnValue(factoryFn)
+                });
+            },
+            value: function (key, value) {
+                this.factory(key, _.constant(value));
+            },
+            service: function (key, Constructor) {
+                this.factory(key, function () {
+                    return instanceInjector.instantiate(Constructor);
+                });
+            },
+            decorator: function (serviceName, decoratorFn) {
+                var provider = providerInjector.get(serviceName + "Provider");
+                var original$get = provider.$get;
+                provider.$get = function () {
+                    var instance = instanceInjector.invoke(original$get, provider);
+                    instanceInjector.invoke(decoratorFn, null, { $delegate: instance });
+                    return instance;
+                };
             }
         };
 
@@ -1779,26 +1850,116 @@
             };
         }
 
-        _.forEach(modulesToLoad, function loadModule(moduleName) {
-            if (!loadedModules.hasOwnProperty(moduleName)) {
-                loadedModules[moduleName] = true;
-                var module = angular.module(moduleName);
-                _.forEach(module.requires, loadModule);
-                _.forEach(module._invokeQueue, function (invokeArgs) {
-                    var method = invokeArgs[0];
-                    var args = invokeArgs[1];
-                    $provide[method].apply($provide, args);
-                });
+        function runInvokeQueue(queue) {
+            _.forEach(queue, function (invokeArgs) {
+                var service = providerInjector.get(invokeArgs[0]);
+                var method = invokeArgs[1];
+                var args = invokeArgs[2];
+                service[method].apply(service, args);
+            });
+        }
+
+        var runBlocks = [];
+        _.forEach(modulesToLoad, function loadModule(module) {
+            if (!loadedModules.get(module)) {
+                loadedModules.put(module, true);
+                if (_.isString(module)) {
+                    module = angular.module(module);
+                    _.forEach(module.requires, loadModule);
+                    runInvokeQueue(module._invokeQueue);
+                    runInvokeQueue(module._configBlocks);
+                    runBlocks = runBlocks.concat(module._runBlocks);
+                } else if (_.isFunction(module) || _.isArray(module)) {
+                    runBlocks.push(providerInjector.invoke(module));
+                }
             }
+        });
+        _.forEach(_.compact(runBlocks), function (runBlock) {
+            instanceInjector.invoke(runBlock);
         });
 
         return instanceInjector;
     }
 
-    window.parse = parse;
-    window.Scope = Scope;
-    window.filter = filter;
-    window.register = register;
-    window.setupModuleLoader = setupModuleLoader;
+    //HashKey
+    function hashKey(value) {
+        var type = typeof value;
+        var uid;
+        if (type === "function" || (type === "object" && value !== null)) {
+            uid = value.$$hashKey;
+            if (typeof uid === "function") {
+                uid = value.$$hashKey();
+            } else if (uid === undefined) {
+                uid = value.$$hashKey = _.uniqueId();
+            }
+        } else {
+            uid = value;
+        }
+        return type + ":" + uid;
+    }
+    function HashMap() { }
+    HashMap.prototype = {
+        put: function (key, value) {
+            this[hashKey(key)] = value;
+        },
+        get: function (key) {
+            return this[hashKey(key)];
+        },
+        remove: function (key) {
+            key = hashKey(key);
+            var value = this[key];
+            delete this[key];
+            return value;
+        }
+    };
+
+    //$q
+    function $QProvider() {
+        this.$get = ["$rootScope", function ($rootScope) {
+            function Promise() {
+                this.$$state = {};
+            }
+            Promise.prototype.then = function (onFulfilled) {
+                this.$$state.pending = onFulfilled;
+            };
+
+            function Deferred() {
+                this.promise = new Promise();
+            }
+            Deferred.prototype.resolve = function (value) {
+                this.promise.$$state.value = value;
+                scheduleProcessQueue(this.promise.$$state);
+            };
+
+            function defer() {
+                return new Deferred();
+            }
+
+            function scheduleProcessQueue(state) {
+                $rootScope.$evalAsync(function () {
+                    processQueue(state);
+                });
+                function processQueue(state) {
+                    state.pending(state.value);
+                }
+            }
+
+            return {
+                defer: defer
+            };
+        }];
+    }
+
+    function publishExternalAPI() {
+        setupModuleLoader(window);
+
+        var ngModule = angular.module("ng", []);
+        ngModule.provider("$filter", $FilterProvider);
+        ngModule.provider("$parse", $ParseProvider);
+        ngModule.provider("$rootScope", $RootScopeProvider);
+        ngModule.provider("$q", $QProvider);
+    }
+
+    window.publishExternalAPI = publishExternalAPI;
     window.createInjector = createInjector;
 })();

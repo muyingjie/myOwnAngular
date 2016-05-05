@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Promises</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        publishExternalAPI();
+        var injector = createInjector(["ng"]);
+        var $q = injector.get("$q");
+        var $rootScope = injector.get("$rootScope");
+        console.log("The $q Provider");
+        console.log("sets up $q");
+        (function () {
+            //var injector = createInjector(["ng"]);
+            //console.log(injector.has("$q"));
+        })();
+        console.log("Creating Deferreds");
+        console.log("can create a Deferred");
+        (function () {
+            //var d = $q.defer;
+            //console.log(d);
+        })();
+        console.log("Accessing The Promise of A Deferred");
+        console.log("has a promise for each Deferred");
+        (function () {
+            //var d = $q.defer();
+            //console.log(d.promise);
+        })();
+        console.log("Resolving A Deferred");
+        console.log("can resolve a promise");
+        (function () {
+            //var deferred = $q.defer();
+            //var promise = deferred.promise;
+            //promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //deferred.resolve("a-ok");
+        })();
+        console.log("works when resolved before promise listener");
+        (function () {
+            var def = $q.defer();
+            def.resolve(42);
+            def.promise.then(function (d) {
+                console.log(d);
+            });
+        })();
+        console.log("doesn't resolve promise immediately");
+        (function () {
+            var def = $q.defer();
+            def.promise.then(function (d) {
+                console.log(d);
+            });
+            def.resolve(42);
+        })();
+        console.log("resolves promise at next digest");
+        (function () {
+            var def = $q.defer();
+            def.promise.then(function (d) {
+                console.log(d);
+            });
+            def.resolve(42);
+            $rootScope.$apply();
+        })();
+    </script>
+</head>
+<body>
+</body>
+</html>
