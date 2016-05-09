@@ -41,27 +41,282 @@
         })();
         console.log("works when resolved before promise listener");
         (function () {
-            var def = $q.defer();
-            def.resolve(42);
-            def.promise.then(function (d) {
-                console.log(d);
-            });
+            //var def = $q.defer();
+            //def.resolve(42);
+            //def.promise.then(function (d) {
+            //    console.log(d);
+            //});
         })();
         console.log("doesn't resolve promise immediately");
         (function () {
-            var def = $q.defer();
-            def.promise.then(function (d) {
-                console.log(d);
-            });
-            def.resolve(42);
+            //var def = $q.defer();
+            //def.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //def.resolve(42);
         })();
         console.log("resolves promise at next digest");
         (function () {
-            var def = $q.defer();
-            def.promise.then(function (d) {
+            //var def = $q.defer();
+            //def.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //def.resolve(42);
+            //$rootScope.$apply();
+        })();
+        console.log("Preventing Multiple Resolutions");
+        console.log("may only be resolved once");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve(42);
+            //d.resolve(43);
+            //$rootScope.$apply();
+        })();
+        console.log("may only ever be resolved once");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve(42);
+            //$rootScope.$apply();
+            //d.resolve(43);
+            //$rootScope.$apply();
+        })();
+        console.log("Ensuring that Callbacks Get Invoked");
+        console.log("resolves a listener added after resolution");
+        (function () {
+            //var d = $q.defer();
+            //d.resolve(42);
+            //$rootScope.$apply();
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //$rootScope.$apply();
+        })();
+        console.log("Registering Multiple Promise Callbacks");
+        console.log("may have multiple callbacks");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve(42);
+            //$rootScope.$apply();
+        })();
+        console.log("invokes callbacks once");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve(42);
+            //$rootScope.$apply();
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //$rootScope.$apply();
+        })();
+        console.log("Rejecting Deferreds And Catching Rejections");
+        console.log("can reject a deferred");
+        (function () {
+            //var d = $q.defer();
+            //var fnSuccess = function (d) { console.log(d); };
+            //var fnFail = function (d) { console.log(d); };
+            //d.promise.then(fnSuccess, fnFail);
+            //d.reject("fail");
+            //$rootScope.$apply();
+        })();
+        console.log("can reject just once");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(null, function (d) { console.log(d); });
+            //d.reject("fail");
+            //$rootScope.$apply();
+            //d.reject("fail again");
+            //$rootScope.$apply();
+        })();
+        console.log("can't fulfill a promise once rejected");
+        (function () {
+            //var d = $q.defer();
+            //var fnSuccess = function (d) { console.log(d); };
+            //var fnFail = function (d) { console.log(d); };
+            //d.promise.then(fnSuccess, fnFail);
+            //d.reject("fail");
+            //$rootScope.$apply();
+            //d.resolve("success");
+            //$rootScope.$apply();
+        })();
+        console.log("doesn't require a failure handler each time");
+        (function () {
+            //var d = $q.defer();
+            //var fnSuccess = function (d) { console.log(d); };
+            //var fnFail = function (d) { console.log(d); };
+            //d.promise.then(fnSuccess);
+            //d.promise.then(null, fnFail);
+            //d.reject("fail");
+            //$rootScope.$apply();
+        })();
+        console.log("doens't require a success handler each time");
+        (function () {
+            //var d = $q.defer();
+            //var fnSuccess = function (d) { console.log(d); };
+            //var fnFail = function (d) { console.log(d); };
+            //d.promise.then(fnSuccess);
+            //d.promise.then(null, fnFail);
+            //d.resolve("success");
+            //$rootScope.$apply();
+        })();
+        console.log("can register rejection handler with catch");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.catch(function (d) { console.log(d); });
+            //d.reject("fail");
+            //$rootScope.$apply();
+        })();
+        console.log("Cleaning Up At The End:finally");
+        console.log("invokes a finally handler when fulfilled");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.finally(function (d) { console.log(d); });
+            //d.resolve(42);
+            //$rootScope.$apply();
+        })();
+        console.log("Promise Chaining");
+        console.log("allows chaining handlers");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function (result) {
+            //    return result + 1;
+            //}).then(function (result) {
+            //    return result * 2;
+            //}).then(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve(20);
+        })();
+        console.log("doesn't modify original resolution in chains");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function (result) {
+            //    return result + 1;
+            //}).then(function (result) {
+            //    return result * 2;
+            //});
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve(20);
+            //$rootScope.$apply();
+        })();
+        console.log("Exception Handling");
+        console.log("reject chained promise when handler throws");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function () {
+            //    throw "fail";
+            //}).catch(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve(42);
+            //$rootScope.$apply();
+        })();
+        console.log("Callbacks Returning Promises");
+        console.log("waits on promise returned from handler");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function (v) {
+            //    var d2 = $q.defer();
+            //    d2.resolve(v + 1);
+            //    return d2.promise;
+            //}).then(function (v) {
+            //    return v * 2;
+            //}).then(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve(20);
+            //$rootScope.$apply();
+        })();
+        console.log("waits on promise given to resolve");
+        (function () {
+            //var d = $q.defer();
+            //var d2 = $q.defer();
+            //d.promise.then(function (d) {
+            //    console.log(d);
+            //});
+            //d2.resolve(42);
+            //d.resolve(d2.promise);
+            //$rootScope.$apply();
+        })();
+        console.log("rejects when promise returned from handler rejects");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function () {
+            //    var d2 = $q.defer();
+            //    d2.reject("fail");
+            //    return d2.promise;
+            //}).catch(function (d) {
+            //    console.log(d);
+            //});
+            //d.resolve("ok");
+        })();
+        console.log("Chaining Handlers on finally");
+        console.log("allows chaining handlers on finally,with original value");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(function (d) {
+            //    return d + 1;
+            //}).finally(function (d) {
+            //    return d * 2;
+            //}).then(function () {
+
+            //});
+            //d.resolve(20);
+            //$rootScope.$apply();
+        })();
+        console.log("Notifying Progress");
+        console.log("can report progress");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(null, null, function (d) {
+            //    console.log(d);
+            //});
+            //d.notify("working...");
+            //$rootScope.$apply();
+        })();
+        console.log("can report progress many times");
+        (function () {
+            //var d = $q.defer();
+            //d.promise.then(null, null, function (d) {
+            //    console.log(d);
+            //});
+            //d.notify("40%");
+            //$rootScope.$apply();
+            //d.notify("80%");
+            //d.notify("100%");
+            //$rootScope.$apply();
+        })();
+        console.log("doesn't notify progress after being resolved");
+        (function () {
+            var d = $q.defer();
+            d.promise.then(null, null, function (d) {
                 console.log(d);
             });
-            def.resolve(42);
+            d.resolve("ok");
+            d.notify("working...");
+            $rootScope.$apply();
+        })();
+        console.log("can notify progress through chain");
+        (function () {
+            var d = $q.defer();
+            d.promise.then(function () { }).catch(function () { }).then(null, null, function () { });
+            d.notify("working...");
             $rootScope.$apply();
         })();
     </script>
