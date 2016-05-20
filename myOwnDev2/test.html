@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scope Inheritance</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular2.js"></script>
+    <script>
+        var fn = parse("{'a':1,'b':2}");
+        console.log(fn);
+
+        var fn = parse("aKey");
+        console.log(fn);
+        console.log(fn({ aKey: 42 }));
+    </script>
+</head>
+<body>
+</body>
+</html>
