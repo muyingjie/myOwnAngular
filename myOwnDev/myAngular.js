@@ -1682,6 +1682,7 @@
                 service: invokeLater("$provide", "service"),
                 decorator: invokeLater("$provide", "decorator"),
                 filter: invokeLater("$filterProvider", "register"),
+                directive: invokeLater("$compileProvider", "directive"),
                 config: invokeLater("$injector", "invoke", "push", configBlocks),
                 run: function (fn) {
                     moduleInstance._runBlocks.push(fn);
@@ -1924,177 +1925,701 @@
     function $$QProvider() {
         this.$get = function () {
             return qFactory(function (callback) {
-                setTimeout(callback,0);
+                setTimeout(callback, 0);
             });
         };
     }
-    function qFactory(callLater){
-            function Promise() {
-                this.$$state = {};
+    function qFactory(callLater) {
+        function Promise() {
+            this.$$state = {};
+        }
+        Promise.prototype.then = function (onFulfilled, onRejected, onProgress) {
+            var result = new Deferred();
+            this.$$state.pending = this.$$state.pending || [];
+            this.$$state.pending.push([result, onFulfilled, onRejected, onProgress]);
+            if (this.$$state.status > 0) {
+                scheduleProcessQueue(this.$$state);
             }
-            Promise.prototype.then = function (onFulfilled, onRejected, onProgress) {
-                var result = new Deferred();
-                this.$$state.pending = this.$$state.pending || [];
-                this.$$state.pending.push([result, onFulfilled, onRejected, onProgress]);
-                if (this.$$state.status > 0) {
-                    scheduleProcessQueue(this.$$state);
-                }
-                return result.promise;
-            };
-            Promise.prototype.catch = function (onRejected) {
-                return this.then(null, onRejected);
-            };
-            Promise.prototype.finally = function (callback, progressBack) {
-                return this.then(function (value) {
-                    return handleFinallyCallback(callback, value, true);
-                }, function (rejection) {
-                    return handleFinallyCallback(callback, rejection, false);
-                }, progressBack);
-            };
+            return result.promise;
+        };
+        Promise.prototype.catch = function (onRejected) {
+            return this.then(null, onRejected);
+        };
+        Promise.prototype.finally = function (callback, progressBack) {
+            return this.then(function (value) {
+                return handleFinallyCallback(callback, value, true);
+            }, function (rejection) {
+                return handleFinallyCallback(callback, rejection, false);
+            }, progressBack);
+        };
 
-            function handleFinallyCallback(callback, value, resolved) {
-                var callbackValue = callback();
-                if (callbackValue && callbackValue.then) {
-                    return callbackValue.then(function () {
-                        return makePromise(value, resolved);
-                    });
-                } else {
+        function handleFinallyCallback(callback, value, resolved) {
+            var callbackValue = callback();
+            if (callbackValue && callbackValue.then) {
+                return callbackValue.then(function () {
                     return makePromise(value, resolved);
-                }
+                });
+            } else {
+                return makePromise(value, resolved);
             }
+        }
 
-            function makePromise(value, resolved) {
-                var d = new Deferred();
-                if (resolved) {
-                    d.resolve(value);
-                } else {
-                    d.reject(value);
-                }
-                return d.promise;
+        function makePromise(value, resolved) {
+            var d = new Deferred();
+            if (resolved) {
+                d.resolve(value);
+            } else {
+                d.reject(value);
             }
+            return d.promise;
+        }
 
-            function Deferred() {
-                this.promise = new Promise();
+        function Deferred() {
+            this.promise = new Promise();
+        }
+        Deferred.prototype.resolve = function (value) {
+            if (this.promise.$$state.status) {
+                return;
             }
-            Deferred.prototype.resolve = function (value) {
-                if (this.promise.$$state.status) {
-                    return;
-                }
-                if (value && _.isFunction(value.then)) {
-                    value.then(
-                            _.bind(this.resolve, this),
-                            _.bind(this.reject, this),
-                            _.bind(this.notify, this)
-                        );
-                } else {
-                    this.promise.$$state.value = value;
-                    this.promise.$$state.status = 1;
-                    scheduleProcessQueue(this.promise.$$state);
-                }
-            };
-            Deferred.prototype.reject = function (reason) {
-                if (this.promise.$$state.status) {
-                    return;
-                }
-                this.promise.$$state.value = reason;
-                this.promise.$$state.status = 2;
+            if (value && _.isFunction(value.then)) {
+                value.then(
+                        _.bind(this.resolve, this),
+                        _.bind(this.reject, this),
+                        _.bind(this.notify, this)
+                    );
+            } else {
+                this.promise.$$state.value = value;
+                this.promise.$$state.status = 1;
                 scheduleProcessQueue(this.promise.$$state);
+            }
+        };
+        Deferred.prototype.reject = function (reason) {
+            if (this.promise.$$state.status) {
+                return;
+            }
+            this.promise.$$state.value = reason;
+            this.promise.$$state.status = 2;
+            scheduleProcessQueue(this.promise.$$state);
+        };
+        Deferred.prototype.notify = function (progress) {
+            var pending = this.promise.$$state.pending;
+            if (pending && pending.length && !this.promise.$$state.status) {
+                callLater(function () {
+                    _.forEach(pending, function (handlers) {
+                        var deferred = handlers[0];
+                        var progressBack = handlers[3];
+                        try {
+                            deferred.notify(_.isFunction(progressBack) ? progressBack(progress) : progress);
+                        } catch (e) {
+                            console.log(e);
+                        }
+                    });
+                });
+            }
+        };
+
+        function defer() {
+            return new Deferred();
+        }
+
+        function processQueue(state) {
+            var pending = state.pending;
+            delete state.pending;
+            _.forEach(pending, function (handlers) {
+                var deferred = handlers[0];
+                var fn = handlers[state.status];
+                try {
+                    if (_.isFunction(fn)) {
+                        deferred.resolve(fn(state.value));
+                    } else if (state.status === 1) {
+                        deferred.resolve(state.value);
+                    } else {
+                        deferred.reject(state.value);
+                    }
+                } catch (e) {
+                    deferred.reject(e);
+                }
+            });
+        }
+
+        function scheduleProcessQueue(state) {
+            callLater(function () {
+                processQueue(state);
+            });
+        }
+        function reject(rejection) {
+            var d = defer();
+            d.reject(rejection);
+            return d.promise;
+        }
+        function when(value, callback, errback, progressback) {
+            var d = defer();
+            d.resolve(value);
+            return d.promise.then(callback, errback, progressback);
+        }
+        function all(promises) {
+            var results = _.isArray(promises) ? [] : {};
+            var counter = 0;
+            var d = defer();
+            _.forEach(promises, function (promise, index) {
+                counter++;
+                when(promise).then(function (value) {
+                    results[index] = value;
+                    counter--;
+                    if (!counter) {
+                        d.resolve(results);
+                    }
+                }, function (rejection) {
+                    d.reject(rejection);
+                });
+            });
+            if (!counter) {
+                d.resolve(results);
+            }
+            return d.promise;
+        }
+
+        var $Q = function Q(resolver) {
+            if (!_.isFunction(resolver)) {
+                throw "Expected function,got " + resolver;
+            }
+            var d = defer();
+            resolver(_.bind(d.resolve, d), _.bind(d.reject, d));
+            return d.promise;
+        };
+
+        return _.extend($Q, {
+            defer: defer,
+            reject: reject,
+            when: when,
+            resolve: when,
+            all: all
+        });
+    }
+    var PREFIX_REGEXP = /(x[\:\-\_]|data|[\:\-_])/i;
+    function $HttpBackendProvider() {
+        this.$get = function () {
+            return function (method, url, post, callback, headers, timeout, withCredentials) {
+                var xhr = new window.XMLHttpRequest();
+                var timeoutId;
+                xhr.open(method, url, true);
+                _.forEach(headers, function (value, key) {
+                    xhr.setRequestHeader(key, value);
+                });
+                if (withCredentials) {
+                    xhr.withCredentials = true;
+                }
+                xhr.send(post || null);
+                xhr.onload = function () {
+                    if (!_.isUndefined(timeoutId)) {
+                        clearTimeout(timeoutId);
+                    }
+                    var response = ("response" in xhr) ? xhr.response : xhr.responseText;
+                    var statusText = xhr.statusText || "";
+                    callback(
+                        xhr.status,
+                        response,
+                        xhr.getAllResponseHeaders(),
+                        statusText);
+                };
+                xhr.onerror = function () {
+                    if (!_.isUndefined(timeoutId)) {
+                        clearTimeout(timeoutId);
+                    }
+                    callback(-1, null, "");
+                };
+                if (timeout && timeout.then) {
+                    timeout.then(function () {
+                        xhr.abort();
+                    });
+                } else if (timeout > 0) {
+                    timeoutId = setTimeout(function () {
+                        xhr.abort();
+                    }, timeout);
+                }
             };
-            Deferred.prototype.notify = function (progress) {
-                var pending = this.promise.$$state.pending;
-                if (pending && pending.length && !this.promise.$$state.status) {
-                    callLater(function () {
-                        _.forEach(pending, function (handlers) {
-                            var deferred = handlers[0];
-                            var progressBack = handlers[3];
-                            try {
-                                deferred.notify(_.isFunction(progressBack) ? progressBack(progress) : progress);
-                            } catch (e) {
-                                console.log(e);
-                            }
-                        });
+        };
+    }
+
+    function $HttpProvider() {
+        var interceptorFactories = this.interceptors = [];
+        var useApplyAsync = false;
+        this.useApplyAsync = function (value) {
+            if (_.isUndefined(value)) {
+                return useApplyAsync;
+            } else {
+                useApplyAsync = !!value;
+                return this;
+            }
+        };
+        var defaults = this.defaults = {
+            paramSerializer: "$httpParamSerializer",
+            headers: {
+                common: {
+                    Accept: "application/json,text/plain,*/*"
+                },
+                post: {
+                    "Content-Type": "application/json;charset=utf-8"
+                },
+                put: {
+                    "Content-Type": "application/json;charset=utf-8"
+                },
+                patch: {
+                    "Content-Type": "application/json;charset=utf-8"
+                }
+            },
+            transformRequest: [function (data) {
+                if (_.isObject(data) && !isBlob(data) && !isFile(data) && !isFormData(data)) {
+                    return JSON.stringify(data);
+                } else {
+                    return data;
+                }
+            }],
+            transformResponse: [defaultHttpResponseTransform]
+        };
+        this.$get = ["$httpBackend", "$q", "$rootScope", "$injector", function ($httpBackend, $q, $rootScope, $injector) {
+            var interceptors = _.map(interceptorFactories, function (fn) {
+                return _.isString(fn) ? $injector.get(fn) : $injector.invoke(fn);
+            });
+            function $http(requestConfig) {
+                var config = _.extend({
+                    method: "GET",
+                    transformRequest: defaults.transformRequest,
+                    transformResponse: defaults.transformResponse,
+                    paramSerializer: defaults.paramSerializer
+                }, requestConfig);
+                if (_.isString(config.paramSerializer)) {
+                    config.paramSerializer = $injector.get(config.paramSerializer);
+                }
+                config.headers = mergeHeaders(requestConfig);
+                var promise = $q.when(config);
+                _.forEach(interceptors, function (interceptor) {
+                    promise = promise.then(interceptor.request, interceptor.requestError);
+                });
+                promise = promise.then(serverRequest);
+                _.forEachRight(interceptors, function (interceptor) {
+                    promise = promise.then(interceptor.response, interceptor.responseError);
+                });
+                promise.success = function (fn) {
+                    promise.then(function (response) {
+                        fn(response.data, response.status, response.headers, config);
+                    });
+                    return promise;
+                };
+                return promise;
+            }
+            function serverRequest(config) {
+                if (_.isUndefined(config.withCredentials) && !_.isUndefined(defaults.withCredentials)) {
+                    config.withCredentials = defaults.withCredentials;
+                }
+
+                var reqData = transformData(
+                    config.data,
+                    headersGetter(config.headers),
+                    undefined,
+                    config.transformRequest);
+
+                if (_.isUndefined(reqData)) {
+                    _.forEach(config.headers, function (v, k) {
+                        if (k.toLowerCase() === "content-type") {
+                            delete config.headers[k];
+                        }
                     });
                 }
-            };
 
-            function defer() {
-                return new Deferred();
+                function transformResponse(response) {
+                    if (response.data) {
+                        response.data = transformData(
+                            response.data,
+                            response.headers,
+                            response.status,
+                            config.transformResponse);
+                    }
+                    if (isSuccess(response.status)) {
+                        return response;
+                    } else {
+                        return $q.reject(response);
+                    }
+                }
+
+                return sendReq(config, reqData).then(transformResponse, transformResponse);
             }
-
-            function processQueue(state) {
-                var pending = state.pending;
-                delete state.pending;
-                _.forEach(pending, function (handlers) {
-                    var deferred = handlers[0];
-                    var fn = handlers[state.status];
-                    try {
-                        if (_.isFunction(fn)) {
-                            deferred.resolve(fn(state.value));
-                        } else if (state.status === 1) {
-                            deferred.resolve(state.value);
-                        } else {
-                            deferred.reject(state.value);
+            function sendReq(config, reqData) {
+                var deferred = $q.defer();
+                $http.pendingRequests.push(config);
+                deferred.promise.then(function () {
+                    _.remove($http.pendingRequests, config);
+                }, function () {
+                    _.remove($http.pendingRequests, config);
+                });
+                function done(status, response, headersString, statusText) {
+                    status = Math.max(status, 0);
+                    function resolvePromise() {
+                        deferred[isSuccess(status) ? "resolve" : "reject"]({
+                            status: status,
+                            data: response,
+                            statusText: statusText,
+                            headers: headersGetter(headersString),
+                            config: config
+                        });
+                    }
+                    if (useApplyAsync) {
+                        $rootScope.$applyAsync(resolvePromise);
+                    } else {
+                        resolvePromise();
+                        if (!$rootScope.$$phase) {
+                            $rootScope.$apply();
                         }
-                    } catch (e) {
-                        deferred.reject(e);
+                    }
+                }
+
+                var url = buildUrl(config.url, config.paramSerializer(config.params));
+
+                function buildUrl(url, serializedParams) {
+                    if (serializedParams.length) {
+                        url += (url.indexOf("?") === -1) ? "?" : "&";
+                        url += serializedParams;
+                    }
+                    return url;
+                }
+                $httpBackend(
+                    config.method,
+                    url,
+                    config.data,
+                    reqData,
+                    done,
+                    config.headers,
+                    config.timeout,
+                    config.withCredentials);
+
+                return deferred.promise;
+            }
+            function transformData(data, headers, status, transform) {
+                if (_.isFunction(transform)) {
+                    return transform(data, headers, status);
+                } else {
+                    return _.reduce(transform, function (data, fn) {
+                        return fn(data, headers, status);
+                    }, data);
+                }
+            }
+            function mergeHeaders(config) {
+                var reqHeaders = _.extend(
+                    {},
+                    config.headers);
+                var defHeaders = _.extend(
+                    {},
+                    defaults.headers.common,
+                    defaults.headers[(config.method || "get").toLowerCase()]);
+                _.forEach(defHeaders, function (value, key) {
+                    var headerExists = _.any(reqHeaders, function (v, k) {
+                        return k.toLowerCase() === key.toLowerCase();
+                    });
+                    if (!headerExists) {
+                        reqHeaders[key] = value;
+                    }
+                });
+                function executeHeaderFns(headers, config) {
+                    return _.transform(headers, function (result, v, k) {
+                        if (_.isFunction(v)) {
+                            v = v(config);
+                            if (_.isNull(v) || _.isUndefined(v)) {
+                                delete result[k];
+                            } else {
+                                result[k] = v;
+                            }
+                        }
+                    }, headers);
+                }
+                return executeHeaderFns(reqHeaders, config);
+            }
+            function headersGetter(headers) {
+                var headerObj;
+                return function (name) {
+                    headerObj = headerObj || parseHeaders(headers);
+                    if (name) {
+                        return headerObj[name.toLowerCase()];
+                    } else {
+                        return headerObj;
+                    }
+                };
+            }
+            function parseHeaders(headers) {
+                if (_.isObject(headers)) {
+                    return _.transform(headers, function (result, v, k) {
+                        result[_.trim(k.toLowerCase())] = _.trim(v);
+                    }, {});
+                } else {
+                    var lines = headers.split("\n");
+                    return _.transform(lines, function (result, line) {
+                        var separatorAt = line.indexOf(':');
+                        var name = _.trim(line.substr(0, separatorAt)).toLowerCase();
+                        var value = _.trim(line.substr(separatorAt + 1));
+                        if (name) {
+                            result[name] = value;
+                        }
+                    }, {});
+                }
+            }
+            function isSuccess(status) {
+                return status >= 200 && status < 300;
+            }
+            $http.defaults = defaults;
+            $http.pendingRequests = [];
+            _.forEach(["get", "head", "delete"], function (method) {
+                $http[method] = function (url, data, config) {
+                    return $http(_.extend(config || {}, {
+                        method: method.toUpperCase(),
+                        url: url,
+                        data: data
+                    }));
+                };
+            });
+            return $http;
+        }];
+        function defaultHttpResponseTransform(data, headers) {
+            if (_.isString(data)) {
+                var contentType = headers("Content-Type");
+                if ((contentType && contentType.indexOf("application/json") === 0) || isJsonLike(data)) {
+                    return JSON.parse(data);
+                }
+            }
+        }
+        function isBlob(object) {
+            return object.toString() === "[object Blob]";
+        }
+        function isFile(object) {
+            return object.toString() === "[object File]";
+        }
+        function isFormData(object) {
+            return object.toString() === "[object FormData]";
+        }
+        function isJsonLike(data) {
+            if (data.match(/^\{(?!\{)/)) {
+                return data.match(/\}$/);
+            } else if (data.match(/^\[/)) {
+                return data.match(/\]$/);
+            }
+        }
+    }
+
+    function $HttpParamSerializerProvider() {
+        this.$get = function () {
+            return function serializeParams(params) {
+                var parts = [];
+                _.forEach(params, function (value, key) {
+                    if (_.isNull(value) || _.isUndefined(value)) {
+                        return;
+                    }
+                    if (!_.isArray(value)) {
+                        value = [value];
+                    }
+                    _.forEach(value, function (v) {
+                        if (_.isObject(v)) {
+                            v = JSON.stringify(v);
+                        }
+                        parts.push(encodeURIComponent(key) + "=" + encodeURIComponent(v));
+                    });
+                });
+                return parts.join("&");
+            };
+        };
+    }
+
+    function $HttpParamSerializerJQLikeProvider() {
+        this.$get = function () {
+            return function (params) {
+                var parts = [];
+                function serialize(value, prefix, topLevel) {
+                    if (_.isNull(value) || _.isUndefined(value)) {
+                        return;
+                    }
+                    if (_.isArray(value)) {
+                        _.forEach(value, function (v, i) {
+                            serialize(v, prefix + "[" + (_.isObject(v) ? i : "") + "]");
+                        });
+                    } else if (_.isObject(value) && !_.isDate(value)) {
+                        _.forEach(value, function (v, k) {
+                            serialize(v, prefix + (topLevel ? "" : "[") + k + (topLevel ? "" : "]"));
+                        });
+                    } else {
+                        parts.push(encodeURIComponent(prefix) + "=" + encodeURIComponent(value));
+                    }
+                }
+                serialize(params, "", true);
+                return parts.join("&");
+            };
+        };
+    }
+
+    function nodeName(element) {
+        return element.nodeName ? element.nodeName : element[0].nodeName;
+    }
+    function $CompileProvider($provide) {
+        var hasDirectives = {};
+        var _this = this;
+        this.directive = function (name, directiveFactory) {
+            if (_.isString(name)) {
+                if (name === "hasOwnProperty") {
+                    throw "hasOwnProperty is not a valid directive name";
+                }
+                if (!hasDirectives.hasOwnProperty(name)) {
+                    hasDirectives[name] = [];
+                    $provide.factory(name + "Directive", ["$injector", function ($injector) {
+                        var factories = hasDirectives[name];
+                        return _.map(factories, function (factory, i) {
+                            var directive = $injector.invoke(factory);
+                            directive.restrict = directive.restrict || "EA";
+                            directive.priority = directive.priority || 0;
+                            directive.name = directive.name || name;
+                            directive.index = i;
+                            return directive;
+                        });
+                    }]);
+                }
+                hasDirectives[name].push(directiveFactory);
+            } else {
+                _.forEach(name, function (directiveFactory, name) {
+                    _this.directive(name, directiveFactory);
+                });
+            }
+        };
+        this.$get = ["$injector", function ($injector) {
+            function compile($compileNodes) {
+                return compileNodes($compileNodes);
+            }
+            function compileNodes($compileNodes) {
+                _.forEach($compileNodes, function (node) {
+                    var attrs = {};
+                    var directives = collectDirectives(node, attrs);
+                    var terminal = applyDirectivesToNode(directives, node, attrs);
+                    if (!terminal && node.childNodes && node.childNodes.length) {
+                        compileNodes(node.childNodes);
                     }
                 });
             }
-
-            function scheduleProcessQueue(state) {
-                callLater(function () {
-                    processQueue(state);
+            function applyDirectivesToNode(directives, compileNode, attrs) {
+                var $compileNode = $(compileNode);
+                var terminalPriority = -Number.MAX_VALUE;
+                var terminal = false;
+                _.forEach(directives, function (directive) {
+                    if (directive.$$start) {
+                        $compileNode = groupScan(compileNode, directive.$$start, directive.$$end);
+                    }
+                    if (directive.priority < terminalPriority) {
+                        return false;
+                    }
+                    if (directive.compile) {
+                        directive.compile($compileNode, attrs);
+                    }
+                    if (directive.terminal) {
+                        terminal = true;
+                        terminalPriority = directive.priority;
+                    }
                 });
+                return terminal;
             }
-            function reject(rejection) {
-                var d = defer();
-                d.reject(rejection);
-                return d.promise;
-            }
-            function when(value, callback, errback, progressback) {
-                var d = defer();
-                d.resolve(value);
-                return d.promise.then(callback, errback, progressback);
-            }
-            function all(promises) {
-                var results = _.isArray(promises) ? [] : {};
-                var counter = 0;
-                var d = defer();
-                _.forEach(promises, function (promise, index) {
-                    counter++;
-                    when(promise).then(function (value) {
-                        results[index] = value;
-                        counter--;
-                        if (!counter) {
-                            d.resolve(results);
+            function groupScan(node, startAttr, endAttr) {
+                var nodes = [];
+                if (startAttr && node && node.hasAttribute(startAttr)) {
+                    var depth = 0;
+                    do {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.hasAttribute(startAttr)) {
+                                depth++;
+                            } else if (node.hasAttribute(endAttr)) {
+                                depth--;
+                            }
                         }
-                    }, function (rejection) {
-                        d.reject(rejection);
-                    });
-                });
-                if (!counter) {
-                    d.resolve(results);
+                        node.push(node);
+                        node = node.nextSibling;
+                    } while (depth > 0)
+                } else {
+                    nodes.push(node);
                 }
-                return d.promise;
+                return $(nodes);
             }
-
-            var $Q = function Q(resolver) {
-                if (!_.isFunction(resolver)) {
-                    throw "Expected function,got " + resolver;
+            function collectDirectives(node, attrs) {
+                var directives = [];
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    var normalizedNodeName = directiveNormalize(nodeName(node).toLowerCase());
+                    addDirective(directives, normalizedNodeName, "E");
+                    _.forEach(node.attributes, function (attr) {
+                        var attrStartName, attrEndName;
+                        var name = attr.name;
+                        var normalizedAttrName = directiveNormalize(name.toLowerCase());
+                        if (/^ngAttr[A-Z]/.test(normalizedAttrName)) {
+                            name = _.kebabCase(normalizedAttrName[6].toLowerCase() + normalizedAttrName.substring(7));
+                        }
+                        var directiveNName = normalizedAttrName.replace(/(Start|End)$/, "");
+                        if (directiveIsMultiElement(directiveNName)) {
+                            if (/Start$/.test(normalizedAttrName)) {
+                                attrStartName = name;
+                                attrEndName = name.substring(0, name.length - 5) + "end";
+                                name = name.substring(0, name.length - 6);
+                            }
+                        }
+                        normalizedAttrName = directiveNormalize(name.toLowerCase());
+                        addDirective(directives, normalizedAttrName, "A", attrStartName, attrEndName);
+                        attrs[normalizedAttrName] = attr.value.trim();
+                    });
+                    _.forEach(node.classList, function (cls) {
+                        var normalizedClassName = directiveNormalize(cls);
+                        addDirective(directives, normalizedClassName, "C");
+                    });
+                } else if (node.nodeType === Node.COMMENT_NODE) {
+                    var match = /^\s*directive\:\s*([\d\w\-_]+)/.exec(node.nodeValue);
+                    if (match) {
+                        addDirective(directives, directiveNormalize(match[1]), "M");
+                    }
                 }
-                var d = defer();
-                resolver(_.bind(d.resolve, d), _.bind(d.reject, d));
-                return d.promise;
-            };
-
-            return _.extend($Q, {
-                defer: defer,
-                reject: reject,
-                when: when,
-                resolve: when,
-                all: all
-            });
+                function directiveIsMultiElement(name) {
+                    if (hasDirectives.hasOwnProperty(name)) {
+                        var directives = $injector.get(name + "Directive");
+                        return _.any(directives, { multiElement: true });
+                    }
+                    return false;
+                }
+                function byPriority(a, b) {
+                    var diff = b.priority - a.priority;
+                    if (diff == 0) {
+                        return diff;
+                    } else {
+                        if (a.name !== b.name) {
+                            return (a.name < b.name ? -1 : 1);
+                        } else {
+                            return a.index - b.index;
+                        }
+                    }
+                }
+                directives.sort(byPriority);
+                return directives;
+            }
+            function addDirective(directives, name, mode, attrStartName, attrEndName) {
+                if (hasDirectives.hasOwnProperty(name)) {
+                    var foundDirectives = $injector.get(name + "Directive");
+                    var applicableDirectives = _.filter(foundDirectives, function (dir) {
+                        return dir.restrict.indexOf(mode) !== -1;
+                    });
+                    _.forEach(applicableDirectives, function (directive) {
+                        if (attrStartName) {
+                            directive = _.create(directive, {
+                                $$start: attrStartName,
+                                $$end: attrEndName
+                            });
+                        }
+                        directives.push(directive);
+                    });
+                    directives.push.apply(directives, applicableDirectives);
+                }
+            }
+            function directiveNormalize(name) {
+                return _.camelCase(name.replace(PREFIX_REGEXP, ""));
+            }
+            return compile;
+        }];
     }
+    $CompileProvider.$inject = ["$provide"];
 
     function publishExternalAPI() {
         setupModuleLoader(window);
@@ -2105,6 +2630,11 @@
         ngModule.provider("$rootScope", $RootScopeProvider);
         ngModule.provider("$q", $QProvider);
         ngModule.provider("$$q", $$QProvider);
+        ngModule.provider("$httpBackend", $HttpBackendProvider);
+        ngModule.provider("$http", $HttpProvider);
+        ngModule.provider("$httpParamSerializer", $HttpBackendProvider);
+        ngModule.provider("$httpParamSerializerJQLike", $HttpParamSerializerJQLikeProvider);
+        ngModule.provider("$compile", $CompileProvider);
     }
 
     window.publishExternalAPI = publishExternalAPI;

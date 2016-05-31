@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BasicDirective</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        publishExternalAPI();
+        console.log("Creating The $compile Provider");
+        console.log("sets up $compile");
+        console.log("Registering Directives");
+        console.log("$compile");
+        console.log("allows creating directives");
+        (function () {
+            //var myModule = window.angular.module("myModule", []);
+            //myModule.directive("testing", function () { });
+            //var injector = createInjector(["ng", "myModule"]);
+            //console.log(injector.has("testingDirective"));
+        })();
+        console.log("allows creating many directives with the same name");
+        (function () {
+            //var myModule = window.angular.module("myModule", []);
+            //myModule.directive("testing", _.constant({ d: "one" }));
+            //myModule.directive("testing", _.constant({ d: "two" }));
+            //var injector = createInjector(["ng", "myModule"]);
+            //var result = injector.get("testingDirective");
+            //console.log(result.length);
+            //console.log(result[0].d);
+            //console.log(result[1].d);
+        })();
+        console.log("allows creating directives with object notation");
+        (function () {
+            //var myModule = window.angular.module("myModule", []);
+            //myModule.directive({
+            //    a: function () { },
+            //    b: function () { },
+            //    c: function () { }
+            //});
+            //var injector = createInjector(["ng", "myModule"]);
+            //console.log(injector.has("bDirective"));
+        })();
+        console.log("Compiling The DOM with Element Directives");
+        function makeInjectorWithDirectives() {
+            var args = arguments;
+            return createInjector(["ng", function ($compileProvider) {
+                $compileProvider.directive.apply($compileProvider, args);
+            }]);
+        }
+        console.log("compiles element directives from a single element");
+        (function () {
+            //var injector = makeInjectorWithDirectives("myDirective", function () {
+            //    return {
+            //        compile: function (element) {
+            //            element.data("hasCompiled", true);
+            //        }
+            //    };
+            //});
+            //injector.invoke(function ($compile) {
+            //    var el = $("<my-directive></my-directive>");
+            //    $compile(el);
+            //    console.log(el.data("hasCompiled"));
+            //});
+        })();
+        console.log("compiles element directives found from several elements");
+        (function () {
+            //var idx = 1;
+            //var injector = makeInjectorWithDirectives("myDirective", function () {
+            //    return {
+            //        compile: function (element) {
+            //            element.data("hasCompiled", idx++);
+            //        }
+            //    };
+            //});
+            //injector.invoke(function ($compile) {
+            //    var el = $("<my-directive></my-directive><my-directive></my-directive>");
+            //    $compile(el);
+            //    console.log(el.eq(0).data("hasCompiled"));
+            //    console.log(el.eq(1).data("hasCompiled"));
+            //});
+        })();
+        console.log("Recursing to Child Elements");
+        console.log("compiles element directives from child elements");
+        (function () {
+            //var idx = 1;
+            //var injector = makeInjectorWithDirectives("myDirective", function () {
+            //    return {
+            //        compile: function (element) {
+            //            element.data("hasCompiled", idx++);
+            //        }
+            //    };
+            //});
+            //injector.invoke(function ($compile) {
+            //    var el = $("<div><my-directive></my-directive></div>");
+            //    $compile(el);
+            //    console.log(el.data("hasCompiled"));
+            //    console.log(el.find("> my-directive").data("hasCompiled"));
+            //});
+        })();
+        console.log("Using Prefixes with Element Directives");
+        console.log("Applying Directives to Attributes");
+        (function () {
+
+        })();
+    </script>
+</head>
+<body>
+</body>
+</html>

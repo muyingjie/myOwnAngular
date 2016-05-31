@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="lodashExtension.js"></script>
+    <script src="directive.js"></script>
+    <script>
+        publishExternalAPI();
+
+        //var module = angular.module("myModule", []);
+        //module.provider("a", function AProvider(b) {
+        //    this.$get = function () {
+        //        return b;
+        //    };
+        //});
+        //module.constant("b", 42);
+        //var injector = createInjector(["myModule"]);
+        //console.log(injector.get("a"));
+
+        //console.log("allows injecting the instance injector to $get");
+        //var module = angular.module("myModule", []);
+        //module.constant("a", 42);
+        //module.provider("b", function BProvider() {
+        //    this.$get = function ($injector) {
+        //        return $injector.get("a");
+        //    };
+        //});
+        //var injector = createInjector(["myModule"]);
+        //console.log(injector.get("b"));
+
+        //console.log("allows injecting the provider injector to provider");
+        //var module = angular.module("myModule", []);
+        //module.provider("a", function AProvider() {
+        //    this.value = 42;
+        //    this.$get = function () { return this.value; };
+        //});
+        //module.provider("b", function BProvider($injector) {
+        //    var aProvider = $injector.get("aProvider");
+        //    this.$get = function () {
+        //        return aProvider.value;
+        //    };
+        //});
+        //var injector = createInjector(["myModule"]);
+        //console.log(injector.get("b"));
+
+        //var myModule = window.angular.module('myModule', []);
+        //myModule.directive('testing', function () { });
+        //var injector = createInjector(['ng', 'myModule']);
+        //console.log(injector.has('testingDirective'));
+
+        //console.log('allows creating many directives with the same name');
+        //var myModule = window.angular.module('myModule', []);
+        //myModule.directive('testing', _.constant({ d: 'one' }));
+        //myModule.directive('testing', _.constant({ d: 'two' }));
+        //var injector = createInjector(['ng', 'myModule']);
+        //var result = injector.get('testingDirective');
+        //console.log(result.length);
+        //console.log(result[0].d);
+        //console.log(result[1].d);
+
+        function makeInjectorWithDirectives() {
+            var args = arguments;
+            return createInjector(['ng', function ($compileProvider) {
+                $compileProvider.directive.apply($compileProvider, args);
+            }]);
+        }
+
+        //console.log("compiles element directives from a single element");
+        //var injector = makeInjectorWithDirectives("myDirective", function () {
+        //    return {
+        //        compile: function (element) {
+        //            element.data("hasCompiled", true);
+        //        }
+        //    };
+        //});
+        //injector.invoke(function ($compile) {
+        //    var el = $("<my-directive></my-directive>");
+        //    $compile(el);
+        //    console.log(el.data("hasCompiled"));
+        //});
+
+        //var injector = makeInjectorWithDirectives({
+        //    myDirective: function() {
+        //        return {
+        //            compile: function(element) {
+        //                element.data('hasCompiled', true);
+        //            }
+        //        };
+        //    },
+        //    mySecondDirective: function() {
+        //        return {
+        //            compile: function(element) {
+        //                element.data('secondCompiled', true);
+        //            }
+        //        };
+        //    }
+        //});
+        //injector.invoke(function($compile) {
+        //    var el = $('<my-directive my-second-directive></my-directive>');
+        //    $compile(el);
+        //    console.log(el.data('hasCompiled'));
+        //    console.log(el.data('secondCompiled'));
+        //});
+
+        //var compileEl = false;
+        //var injector = makeInjectorWithDirectives('myDir', function () {
+        //    return {
+        //        multiElement: true,
+        //        compile: function (element) {
+        //            compileEl = element;
+        //        }
+        //    };
+        //});
+        //injector.invoke(function ($compile) {
+        //    var el = $('<div my-dir-start></div><span></span><div my-dir-end></div>');
+        //    $compile(el);
+        //    console.log(compileEl.length);
+        //});
+
+        function registerAndCompile(dirName, domString, callback) {
+            var givenAttrs;
+            var injector = makeInjectorWithDirectives(dirName, function () {
+                return {
+                    restrict: "ECMA",
+                    compile: function (element, attrs) {
+                        givenAttrs = attrs;
+                    }
+                };
+            });
+            injector.invoke(function ($compile) {
+                var el = $(domString);
+                $compile(el);
+                callback(el, givenAttrs);
+            });
+        }
+
+        //console.log("passes the element attributes to the compile function");
+        //registerAndCompile('myDirective', '<my-directive my-attr="1" my-other-attr="two"></my-directive>',
+        //    function (element, attrs) {
+        //        console.log(attrs.myAttr);
+        //        console.log(attrs.myOtherAttr);
+        //    }
+        //);
+
+        //console.log("sets the value of boolean attributes to true");
+        //registerAndCompile('myDirective', '<input my-directive disabled>',
+        //    function (element, attrs) {
+        //        console.log(attrs.disabled);
+        //    }
+        //);
+
+        console.log("uses new attribute name after once given");
+        registerAndCompile('myDirective', '<my-directive x-some-attribute="42"></my-directive>',
+            function (element, attrs) {
+                attrs.$set('someAttribute', 43, true, 'some-attribute');
+                attrs.$set('someAttribute', 44);
+                console.log(element.attr('some-attribute'));
+                console.log(element.attr('x-some-attribute'));
+            }
+        );
+    </script>
+</head>
+<body>
+</body>
+</html>

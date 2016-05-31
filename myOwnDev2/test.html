@@ -7,12 +7,58 @@
     <script src="lodash.js"></script>
     <script src="myAngular2.js"></script>
     <script>
-        var fn = parse("{'a':1,'b':2}");
-        console.log(fn);
+        //var fn = parse("{'a':1,'b':2}");
+        //console.log(fn);
 
-        var fn = parse("aKey");
-        console.log(fn);
-        console.log(fn({ aKey: 42 }));
+        //var fn = parse("aKey");
+        //console.log(fn);
+        //console.log(fn({ aKey: 42 }));
+
+        setupModuleLoader(window);
+        console.log("injects the $get method of a provider lazily");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.provider("b", {
+            //    $get: function (a) {
+            //        return a + 2;
+            //    }
+            //});
+            //module.provider("a", { $get: _.constant(1) });
+            //var injector = createInjector(["myModule"]);
+            //console.log(injector.get("b"));
+        })();
+        console.log("injects another provider to a provider constructor function");
+        (function () {
+            //var module = angular.module("myModule", []);
+            //module.provider("a", function AProvider() {
+            //    var value = 1;
+            //    this.setValue = function (v) {
+            //        value = v;
+            //    };
+            //    this.$get = function () {
+            //        return value;
+            //    };
+            //});
+            //module.provider("b", function BProvider(aProvider) {
+            //    aProvider.setValue(2);
+            //    this.$get = function () {
+
+            //    };
+            //});
+            //var injector = createInjector(["myModule"]);
+            //console.log(injector.get("a"));
+        })();
+        console.log("doesn't inject an instance to a provider constructor function");
+        (function () {
+            var module = angular.module("myModule", []);
+            module.provider("a", function AProvider() {
+                this.$get = function () { return 1;};
+            });
+            module.provider("b", function BProvider(a) {
+                this.$get = function () { return a; };
+            });
+            console.log(createInjector(["myModule"]));
+        })();
     </script>
 </head>
 <body>
