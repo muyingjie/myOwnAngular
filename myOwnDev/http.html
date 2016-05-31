@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>http</title>
+    <script src="jquery-2.2.0.js"></script>
+    <script src="lodash.js"></script>
+    <script src="myAngular.js"></script>
+    <script>
+        publishExternalAPI();
+        var injector = createInjector(["ng"]);
+        var $http = injector.get("$http");
+        //console.log(injector.has("$http"));
+        //console.log(injector.has("$httpBackend"));
+        console.log("Sending HTTP Requests");
+        console.log($http instanceof Function);
+        console.log("return a Promise");
+        (function () {
+            //var result = $http({});
+            //console.log(result);
+            //console.log(result.then);
+        })();
+    </script>
+</head>
+<body>
+</body>
+</html>
