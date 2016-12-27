@@ -6,7 +6,23 @@
     <script src="jquery-2.2.0.js"></script>
     <script src="lodash.js"></script>
     <script src="myAngular2.js"></script>
-
+    <script src="testCode/6$eval-$apply-$evalAsync.js"></script>
+    <script>
+        var scope = new Scope();
+        scope.aValue = [1, 2, 3];
+        scope.asyncEvaluatedTimes = 0;
+        scope.$watch(
+                function(scope) {
+                    scope.$evalAsync(function(scope) {
+                        scope.asyncEvaluatedTimes++;
+                        console.log(scope.asyncEvaluatedTimes);
+                    });
+                    return scope.aValue;
+                },
+                function(newValue, oldValue, scope) { }
+        );
+        scope.$digest();
+    </script>
 </head>
 <body>
 </body>

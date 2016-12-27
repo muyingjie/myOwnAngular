@@ -1,5 +1,4 @@
 //脏检测
-//上一个版本实现的脏检测有明显的问题，那就是即使dirty变成了true，仍然会执行完所有的watcher，这显然没有必要
 function Scope(){
     //存放页面中所有的watcher，watcher的来源有：
     //1、手动通过scope对象上$watch方法绑定上去
