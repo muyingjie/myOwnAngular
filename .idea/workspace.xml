@@ -2,15 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a7bb7e67-48f9-451d-bc43-bd6830ea6201" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/.idea/copyright/profiles_settings.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/.idea/modules.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/.idea/myOwnDev2016-11-14.iml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/.idea/workspace.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/1脏检测-最基础框架.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/2脏检测.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/3脏检测.js" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/test.html" afterPath="$PROJECT_DIR$/myOwnDev2016-11-14/test.html" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/12expr-parseIntegers.js" afterPath="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/12expr-parseIntegers.js" />
     </list>
     <ignored path="myOwnAngular.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -53,11 +45,23 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="12expr-parseIntegers.js" pinned="false" current-in-tab="true">
+      <file leaf-file-name="12expr-parseIntegers.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/myOwnDev2016-11-14/testCode/12expr-parseIntegers.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="972">
-              <caret line="86" column="17" selection-start-line="86" selection-start-column="17" selection-end-line="86" selection-end-column="17" />
+            <state relative-caret-position="374">
+              <caret line="24" column="2" selection-start-line="24" selection-start-column="2" selection-end-line="24" selection-end-column="2" />
+              <folding>
+                <element signature="n#!!doc;n#Lexer#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="13expr-parseFloatNum.js" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/myOwnDev2016-11-14/testCode/13expr-parseFloatNum.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="289">
+              <caret line="28" column="25" selection-start-line="28" selection-start-column="25" selection-end-line="28" selection-end-column="25" />
               <folding>
                 <element signature="n#!!doc;n#Lexer#0" expanded="false" />
               </folding>
@@ -93,6 +97,7 @@
         <option value="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/10dirtyCheck-scopeEvents.js" />
         <option value="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/11expr.js" />
         <option value="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/12expr-parseIntegers.js" />
+        <option value="$PROJECT_DIR$/myOwnDev2016-11-14/testCode/13expr-parseFloatNum.js" />
       </list>
     </option>
   </component>
@@ -269,16 +274,16 @@
       <workItem from="1482491801470" duration="2412000" />
       <workItem from="1482657074172" duration="1768000" />
       <workItem from="1482766856622" duration="818000" />
-      <workItem from="1482849963118" duration="323000" />
+      <workItem from="1482849963118" duration="3103000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="31797000" />
+    <option name="totallyTimeSpent" value="34577000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1382" height="744" extended-state="0" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22692889" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -552,8 +557,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/myOwnDev2016-11-14/testCode/12expr-parseIntegers.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="972">
-          <caret line="86" column="17" selection-start-line="86" selection-start-column="17" selection-end-line="86" selection-end-column="17" />
+        <state relative-caret-position="374">
+          <caret line="24" column="2" selection-start-line="24" selection-start-column="2" selection-end-line="24" selection-end-column="2" />
+          <folding>
+            <element signature="n#!!doc;n#Lexer#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/myOwnDev2016-11-14/testCode/13expr-parseFloatNum.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="289">
+          <caret line="28" column="25" selection-start-line="28" selection-start-column="25" selection-end-line="28" selection-end-column="25" />
           <folding>
             <element signature="n#!!doc;n#Lexer#0" expanded="false" />
           </folding>

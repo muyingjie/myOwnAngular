@@ -1,7 +1,6 @@
 /**
- * Created by yj on 2016/12/22.
+ * Created by yj on 2016/12/27.
  */
-//第一步
 function Lexer(){
     this.text = text;
     this.index = 0;
@@ -27,7 +26,7 @@ Lexer.prototype.readNumber = function() {
     var number = '';
     while (this.index < this.text.length) {
         var ch = this.text.charAt(this.index);
-        if (this.isNumber(ch)) {
+        if (ch === "." || this.isNumber(ch)) {
             number += ch;
         } else {
             break;
