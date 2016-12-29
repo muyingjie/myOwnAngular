@@ -3,6 +3,9 @@
  */
 //第一步
 function Lexer(){
+
+}
+Lexer.prototype.lex = function (lex) {
     this.text = text;
     this.index = 0;
     this.ch = undefined;
@@ -16,9 +19,6 @@ function Lexer(){
         }
     }
     return this.tokens;
-}
-Lexer.prototype.lex = function (lex) {
-
 };
 Lexer.prototype.isNumber = function(ch) {
     return '0' <= ch && ch <= '9';
