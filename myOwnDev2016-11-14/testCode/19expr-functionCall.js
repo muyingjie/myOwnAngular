@@ -1,5 +1,5 @@
 /**
- * Created by yj on 2017/1/7.
+ * Created by yj on 2017/1/8.
  */
 var ESCAPES = {
     'n':'\n',
@@ -25,7 +25,7 @@ Lexer.prototype.lex = function (text) {
             this.readNumber();
         } else if(this.is("\'\"")) {
             this.readString(this.ch);
-        } else if(this.ch.is("[],{}:.")) {
+        } else if(this.ch.is("[],{}:.()")) {
             //此处并没有解析数组内部的具体内容，具体内容的解析在arrayDeclaration成员方法中
             this.tokens.push({
                 text: this.ch
@@ -169,6 +169,7 @@ AST.Property = 'Property';
 AST.Identifier = 'Identifier';
 AST.ThisExpression = 'ThisExpression';
 AST.MemberExpression = 'MemberExpression';
+AST.CallExpression = 'CallExpression';
 AST.prototype.constants = {
     'null': {type: AST.Literal, value: null},
     'true': {type: AST.Literal, value: true},
@@ -214,8 +215,9 @@ AST.prototype.primary = function() {
     // 因为对象可以访问任意级，因此需要循环每个属性
     var next;
     // while (this.expect('.')) {
-    while(next = this.expect('.', '[')){
+    while(next = this.expect('.', '[', '(')){
         if (next.text === '[') {
+            // 处理通过[]访问对象属性的方式
             primary = {
                 type: AST.MemberExpression,
                 property: this.primary(),
@@ -223,13 +225,22 @@ AST.prototype.primary = function() {
                 computed: true //代表通过[来访问属性 ASTCompile recurse时会用
             };
             this.consume(']');
-        }else{
+        } else if (next.text === '.') {
+            // 处理通过.访问对象属性的方式
             primary = {
                 type: AST.MemberExpression,
                 property: this.identifier(),
                 object: primary,
                 computed: false //代表通过.来访问属性 ASTCompile recurse时会用
             };
+        } else if (next.text === '(') {
+            // 处理函数调用
+            primary = {
+                type: AST.CallExpression,
+                callee: primary,
+                arguments: this.parseArguments()
+            };
+            this.consume(')');
         }
     }
     return primary;
@@ -325,6 +336,16 @@ AST.prototype.peek = function(e1, e2, e3, e4) {
         }
     }
 };
+//和解析数组里面各项的算法一样，这里是解析函数参数
+AST.prototype.parseArguments = function() {
+    var args = [];
+    if (!this.peek(')')) {
+        do {
+            args.push(this.primary());
+        } while (this.expect(','));
+    }
+    return args;
+};
 //第三步
 function ASTCompiler(astBuilder) {
     this.astBuilder = astBuilder;
@@ -347,7 +368,11 @@ ASTCompiler.prototype.compile = function(text) {
                 ''
         ) + this.state.body.join(''));
 };
-ASTCompiler.prototype.recurse = function(ast) {
+// context表示函数调用时的上下文环境，context对象参数有下面三个属性
+// context - The owning object of the method. Will eventually become this.
+// name - The method’s property name in the owning object.
+// computed - Whether the method was accessed as a computed property or not.
+ASTCompiler.prototype.recurse = function(ast, context) {
     var intoId;
     switch (ast.type){
         //Program需要生成return表达式
@@ -385,21 +410,52 @@ ASTCompiler.prototype.recurse = function(ast) {
             // this.if_(this.not("l") + " && s", this.assign(intoId , this.nonComputedMember("s", ast.name) + ";"));
             this.if_(this.not(this.getHasOwnProperty('l', ast.name)) + ' && s',
                 this.assign(intoId, this.nonComputedMember('s', ast.name)));
+            if (context) {
+                context.context = this.getHasOwnProperty('l', ast.name) + '?l:s';
+                context.name = ast.name;
+                context.computed = false;
+            }
             return intoId;
         case AST.ThisExpression:
             return "s";
         case AST.MemberExpression:
             intoId = this.nextId();
             var left = this.recurse(ast.object);
+            if (context) {
+                context.context = left;
+            }
             if(ast.computed){
                 var right = this.recurse(ast.property);
                 this.if_(left,
                     this.assign(intoId, this.computedMember(left, right)));
+                if (context) {
+                    context.name = right;
+                    context.computed = true;
+                }
             } else {
                 this.if_(left,
                     this.assign(intoId, this.nonComputedMember(left, ast.property.name)));
+                if (context) {
+                    context.name = ast.property.name;
+                    context.computed = false;
+                }
             }
             return intoId;
+        case AST.CallExpression:
+            var callContext = {};
+            //callContext代表函数调用的上下文环境，在下面这个recurse的时候会给callContext赋name computed context等属性
+            var callee = this.recurse(ast.callee, callContext);
+            var args = _.map(ast.arguments, function (arg) {
+                return this.recurse(arg);
+            }, this);
+            if (callContext.name) {
+                if (callContext.computed) {
+                    callee = this.computedMember(callContext.context, callContext.name);
+                } else {
+                    callee = this.nonComputedMember(callContext.context, callContext.name);
+                }
+            }
+            return callee + "&&" + callee + "(" + args.join(",") + ")";
     }
 };
 ASTCompiler.prototype.escape = function(value) {
