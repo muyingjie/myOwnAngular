@@ -80,3 +80,15 @@ var objectNodeSpec = {
         }
     ]
 };
+//赋值表达式
+var assingmentNodeSpec = {
+    type: AST.AssignmentExpression,
+    left: {
+        type: AST.Literal,
+        value: "aaa"
+    },
+    right: {
+        type: AST.Literal,
+        value: "bbb"
+    }
+};
