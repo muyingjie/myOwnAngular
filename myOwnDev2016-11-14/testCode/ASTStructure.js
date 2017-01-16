@@ -92,3 +92,9 @@ var assingmentNodeSpec = {
         value: "bbb"
     }
 };
+//一元运算符
+var unaryNodeSpec = {
+    type: AST.UnaryExpression,
+    operator: '+',
+    argument: 42
+};
