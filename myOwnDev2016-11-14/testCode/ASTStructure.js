@@ -98,3 +98,16 @@ var unaryNodeSpec = {
     operator: '+',
     argument: 42
 };
+//二元运算符
+var multicativeNodeSpec = {
+    type: AST.BinaryExpression,
+    left: {
+        type: AST.Literal,
+        value: "aaa"
+    },
+    operator: '*',
+    right: {
+        type: AST.Literal,
+        value: "bbb"
+    }
+};
