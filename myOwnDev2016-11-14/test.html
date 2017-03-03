@@ -6,22 +6,37 @@
     <script src="jquery-2.2.0.js"></script>
     <script src="lodash.js"></script>
     <script src="myAngular2.js"></script>
-    <script src="testCode/6$eval-$apply-$evalAsync.js"></script>
+    <script src="testCode/di-providers.js"></script>
     <script>
-        var scope = new Scope();
-        scope.aValue = [1, 2, 3];
-        scope.asyncEvaluatedTimes = 0;
-        scope.$watch(
-                function(scope) {
-                    scope.$evalAsync(function(scope) {
-                        scope.asyncEvaluatedTimes++;
-                        console.log(scope.asyncEvaluatedTimes);
-                    });
-                    return scope.aValue;
-                },
-                function(newValue, oldValue, scope) { }
-        );
-        scope.$digest();
+//        var scope = new Scope();
+//        scope.aValue = [1, 2, 3];
+//        scope.asyncEvaluatedTimes = 0;
+//        scope.$watch(
+//                function(scope) {
+//                    scope.$evalAsync(function(scope) {
+//                        scope.asyncEvaluatedTimes++;
+//                        console.log(scope.asyncEvaluatedTimes);
+//                    });
+//                    return scope.aValue;
+//                },
+//                function(newValue, oldValue, scope) { }
+//        );
+//        scope.$digest();
+
+    setupModuleLoader(window);
+    var module = angular.module('myModule', []);
+    module.constant('a', 1);
+    module.provider('b', {
+        $get: function(a) {
+            return a + 2;
+        }
+    });
+    var injector = createInjector(['myModule']);
+    console.log(injector.get('b')); //3
+
+{
+
+}
     </script>
 </head>
 <body>

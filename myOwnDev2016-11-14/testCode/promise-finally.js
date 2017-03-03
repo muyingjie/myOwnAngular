@@ -37,8 +37,9 @@ this.$get = ["$rootScope", function ($rootScope) {
         return this.then(null, onRejected);
     };
     Promise.prototype.finally = function(callback) {
-        return this.then(function() {
+        return this.then(function(value) {
             callback();
+            return value;
         }, function() {
             callback();
         });
