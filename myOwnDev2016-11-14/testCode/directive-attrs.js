@@ -112,6 +112,24 @@ function $CompileProvider($provide) {
                 }
             };
         };
+        Attributes.prototype.$addClass = function(classVal) {
+            this.$$element.addClass(classVal);
+        };
+        Attributes.prototype.$removeClass = function(classVal) {
+            this.$$element.removeClass(classVal);
+        };
+        Attributes.prototype.$updateClass = function(newClassVal, oldClassVal) {
+            var newClasses = newClassVal.split(/\s+/);
+            var oldClasses = oldClassVal.split(/\s+/);
+            var addedClasses = _.difference(newClasses, oldClasses);
+            var removedClasses = _.difference(oldClasses, newClasses);
+            if (addedClasses.length) {
+                this.$addClass(addedClasses.join(' '));
+            }
+            if (removedClasses.length) {
+                this.$removeClass(removedClasses.join(' '));
+            }
+        };
         var PREFIX_REGEXP = /(x[\:\-_]|data[\:\-_])/i;
         var BOOLEAN_ATTRS = {
             multiple: true,
@@ -258,19 +276,24 @@ function $CompileProvider($provide) {
                         className = className.substr(match.index + match[0].length);
                     }
                 }
-                _.forEach(node.classList, function (cls) {
-                    var normalizedClassName = directiveNormalize(cls);
-                    // addDirective(directives, normalizedClassName, 'C');
-                    // 通过module注册过的directive存到attrs中才有意义
-                    if (addDirective(directives, normalizedClassName, 'C')) {
-                        attrs[normalizedClassName] = undefined;
-                    }
-                });
+                // _.forEach(node.classList, function (cls) {
+                //     var normalizedClassName = directiveNormalize(cls);
+                //     // addDirective(directives, normalizedClassName, 'C');
+                //     // 通过module注册过的directive存到attrs中才有意义
+                //     if (addDirective(directives, normalizedClassName, 'C')) {
+                //         attrs[normalizedClassName] = undefined;
+                //     }
+                // });
             } else if (node.nodeType === Node.COMMENT_NODE) {
                 // 从注册的指令中提取出注释指令
-                match = /^\s*directive\:\s*([\d\w\-_]+)/.exec(node.nodeValue);
+                // match = /^\s*directive\:\s*([\d\w\-_]+)/.exec(node.nodeValue);
+                match = /^\s*directive\:\s*([\d\w\-_]+)\s*(.*)$/.exec(node.nodeValue);
                 if (match) {
-                    addDirective(directives, directiveNormalize(match[1]), 'M');
+                    // addDirective(directives, directiveNormalize(match[1]), 'M');
+                    var normalizedName = directiveNormalize(match[1]);
+                    if (addDirective(directives, normalizedName, 'M')) {
+                        attrs[normalizedName] = match[2] ? match[2].trim() : undefined;
+                    }
                 }
             }
             directives.sort(byPriority);
