@@ -2635,8 +2635,14 @@
         ngModule.provider("$httpParamSerializer", $HttpBackendProvider);
         ngModule.provider("$httpParamSerializerJQLike", $HttpParamSerializerJQLikeProvider);
         ngModule.provider("$compile", $CompileProvider);
+
+        return ngModule;
     }
 
     window.publishExternalAPI = publishExternalAPI;
     window.createInjector = createInjector;
+
+    var ngModule = publishExternalAPI();
+    ngModule.directive("testing", function(){});
+    createInjector(["ng"]);
 })();
