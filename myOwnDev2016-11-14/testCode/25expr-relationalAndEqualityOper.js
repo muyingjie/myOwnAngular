@@ -1,6 +1,23 @@
 /**
- * Created by yj on 2017/1/8.
+ * Created by yj on 2017/2/12.
  */
+//解析加减运算符
+var OPERATORS = {
+    '+': true,
+    '!': true,
+    '-': true,
+    '*': true,
+    '/': true,
+    '%': true,
+    '==': true,
+    '!=': true,
+    '===': true,
+    '!==': true,
+    '<': true,
+    '>': true,
+    '<=': true,
+    '>=': true
+};
 var ESCAPES = {
     'n':'\n',
     'f':'\f',
@@ -25,7 +42,7 @@ Lexer.prototype.lex = function (text) {
             this.readNumber();
         } else if(this.is("\'\"")) {
             this.readString(this.ch);
-        } else if(this.is("[],{}:.()=")) {
+        } else if(this.ch.is("[],{}:.()=")) {
             //此处并没有解析数组内部的具体内容，具体内容的解析在arrayDeclaration成员方法中
             this.tokens.push({
                 text: this.ch
@@ -36,7 +53,13 @@ Lexer.prototype.lex = function (text) {
         } else if(this.isWhitespace(this.ch)) {
             this.index++;
         } else {
-            throw 'Unexpected next character: ' + this.ch;
+            var op = OPERATORS[this.ch];
+            if (op) {
+                this.tokens.push({text: this.ch});
+                this.index++;
+            } else {
+                throw 'Unexpected next character: '+this.ch;
+            }
         }
     }
     return this.tokens;
@@ -79,9 +102,12 @@ Lexer.prototype.readNumber = function() {
 Lexer.prototype.readString = function(quote) {
     this.index++;
     var string = '';
+    //rawString将用于字符串节点的text属性，防止类似'"!"'的token串和单目运算————非运算相混淆
+    var rawString = quote;
     var escape = false;
     while (this.index < this.text.length) {
         var ch = this.text.charAt(this.index);
+        rawString += ch;
         if(escape){
             if (ch === 'u') {
                 //处理以\u开头（如\u4e00）类型的转义字符
@@ -104,7 +130,8 @@ Lexer.prototype.readString = function(quote) {
         } else if (ch === quote) {
             this.index++;
             this.tokens.push({
-                text: string,
+                // text: string,
+                text: rawString,
                 value: string
             });
             return;
@@ -171,6 +198,8 @@ AST.ThisExpression = 'ThisExpression';
 AST.MemberExpression = 'MemberExpression';
 AST.CallExpression = 'CallExpression';
 AST.AssignmentExpression = 'AssignmentExpression';
+AST.UnaryExpression = 'UnaryExpression';
+AST.BinaryExpression = 'BinaryExpression';
 AST.prototype.constants = {
     'null': {type: AST.Literal, value: null},
     'true': {type: AST.Literal, value: true},
@@ -248,11 +277,32 @@ AST.prototype.primary = function() {
     }
     return primary;
 };
+AST.prototype.unary = function() {
+    var token;
+    if ((token = this.expect('+', '!', '-'))) {
+        return {
+            type: AST.UnaryExpression,
+            operator: token.text,
+            // argument: this.primary()
+            argument: this.unary() //用于解决取反运算符多次调用 例如!!!a
+        };
+    } else {
+        return this.primary();
+    }
+};
 //assignment主要针对设置值，即赋值表达式
 AST.prototype.assignment = function () {
-    var left = this.primary();
+    // var left = this.primary(); primary只是unary的一个分支
+    // var left = this.unary();
+    // var left = this.multiplicative();
+    // var left = this.additive();
+    var left = this.equality();
     if (this.expect('=')) {
-        var right = this.primary();
+        // var right = this.primary();
+        // var right = this.unary();
+        // var right = this.multiplicative();
+        // var right = this.additive();
+        var right = this.equality();
         return {type: AST.AssignmentExpression, left: left, right: right};
     }
     return left;
@@ -364,6 +414,59 @@ AST.prototype.parseArguments = function() {
     }
     return args;
 };
+//处理乘、除、取余
+AST.prototype.multiplicative = function() {
+    var left = this.unary();
+    var token;
+    while ((token = this.expect('*', '/', '%'))) {
+        left = {
+            type: AST.BinaryExpression,
+            left: left,
+            operator: token.text,
+            right: this.unary()
+        };
+    }
+    return left;
+};
+AST.prototype.additive = function() {
+    var left = this.multiplicative();
+    var token;
+    while ((token = this.expect('+')) || (token = this.expect('-'))) {
+        left = {
+            type: AST.BinaryExpression,
+            left: left,
+            operator: token.text,
+            right: this.multiplicative()
+        };
+    }
+    return left;
+};
+AST.prototype.equality = function() {
+    var left = this.relational();
+    var token;
+    while ((token = this.expect('==', '!=', '===', '!=='))) {
+        left = {
+            type: AST.BinaryExpression,
+            left: left,
+            operator: token.text,
+            right: this.relational()
+        };
+    }
+    return left;
+};
+AST.prototype.relational = function() {
+    var left = this.additive();
+    var token;
+    while ((token = this.expect('<', '>', '<=', '>='))) {
+        left = {
+            type: AST.BinaryExpression,
+            left: left,
+            operator: token.text,
+            right: this.additive()
+        };
+    }
+    return left;
+};
 //第三步
 function ASTCompiler(astBuilder) {
     this.astBuilder = astBuilder;
@@ -380,11 +483,34 @@ ASTCompiler.prototype.compile = function(text) {
     //参数s即为scope对象
     // return new Function("s", this.state.body.join(""));
     //改为将所有的变量提升到函数最上方定义
-    return new Function('s', 'l',
+    // return new Function('s', 'l',
+    //     (this.state.vars.length ?
+    //         'var ' + this.state.vars.join(',') + ';' :
+    //             ''
+    //     ) + this.state.body.join(''));
+
+    // 对于通过"."来访问属性的途径我们可以通过给ensureSafeMemberName传入要检测的值来判断其是否安全
+    // 但是对于通过[]来访问属性的途径，由于我们无法在编译的时候知道该属性所代表的具体的值
+    // 因此我们需要在运行的时候去做校验，即表达式被执行的时候被校验，因此需要把校验函数作为参数传进$watch的函数
+    // 最后通过闭包的形式返回函数，并将校验函数ensureSafeMemberName传入
+    var fnString = 'var fn=function(s,l){' +
         (this.state.vars.length ?
             'var ' + this.state.vars.join(',') + ';' :
                 ''
-        ) + this.state.body.join(''));
+        ) +
+        this.state.body.join('') +
+        '}; return fn;';
+
+    return new Function(
+        'ensureSafeMemberName',
+        'ensureSafeObject',
+        'ensureSafeFunction',
+        'ifDefined',
+        fnString)(
+        ensureSafeMemberName,
+        ensureSafeObject,
+        ensureSafeFunction,
+        ifDefined);
 };
 // context表示函数调用时的上下文环境，context对象参数有下面三个属性
 // context - The owning object of the method. Will eventually become this.
@@ -417,6 +543,8 @@ ASTCompiler.prototype.recurse = function(ast, context, create) {
             }, this);
             return "{" + properties.join(',') + "}";
         case AST.Identifier:
+            //遇到constructor __proto__ __defineGetter__等等的token时，直接抛出错误
+            ensureSafeMemberName(ast.name);
             // var intoId = this.nextId();
             // intoId变量需要在多个case下共用
             intoId = this.nextId();
@@ -442,6 +570,8 @@ ASTCompiler.prototype.recurse = function(ast, context, create) {
                 context.name = ast.name;
                 context.computed = false;
             }
+            //不可以将window用来赋值
+            this.addEnsureSafeObject(intoId);
             return intoId;
         case AST.ThisExpression:
             return "s";
@@ -453,25 +583,32 @@ ASTCompiler.prototype.recurse = function(ast, context, create) {
             }
             if(ast.computed){
                 var right = this.recurse(ast.property);
+                //遇到constructor __proto__ __defineGetter__等等的token时，直接抛出错误
+                this.addEnsureSafeMemberName(right);
                 //aaa.bbb.ccc如果bbb是undefined，在js中会报错，但是在这里不会报错，在此处理create
                 if (create) {
                     this.if_(this.not(this.computedMember(left, right)),
                         this.assign(this.computedMember(left, right), '{}'));
                 }
                 this.if_(left,
-                    this.assign(intoId, this.computedMember(left, right)));
+                    this.assign(intoId,
+                        'ensureSafeObject(' + this.computedMember(left, right) + ')'));
                 if (context) {
                     context.name = right;
                     context.computed = true;
                 }
             } else {
+                //遇到constructor __proto__ __defineGetter__等等的token时，直接抛出错误
+                ensureSafeMemberName(ast.property.name);
                 //aaa.bbb.ccc如果bbb是undefined，在js中会报错，但是在这里不会报错，在此处理create
                 if (create) {
                     this.if_(this.not(this.nonComputedMember(left, ast.property.name)),
                         this.assign(this.nonComputedMember(left, ast.property.name), '{}'));
                 }
                 this.if_(left,
-                    this.assign(intoId, this.nonComputedMember(left, ast.property.name)));
+                    this.assign(intoId,
+                        'ensureSafeObject(' +
+                        this.nonComputedMember(left, ast.property.name) + ')'));
                 if (context) {
                     context.name = ast.property.name;
                     context.computed = false;
@@ -483,16 +620,21 @@ ASTCompiler.prototype.recurse = function(ast, context, create) {
             //callContext代表函数调用的上下文环境，在下面这个recurse的时候会给callContext赋name computed context等属性
             var callee = this.recurse(ast.callee, callContext);
             var args = _.map(ast.arguments, function (arg) {
-                return this.recurse(arg);
+                return 'ensureSafeObject(' + this.recurse(arg) + ')';
             }, this);
             if (callContext.name) {
+                this.addEnsureSafeObject(callContext.context);
                 if (callContext.computed) {
                     callee = this.computedMember(callContext.context, callContext.name);
                 } else {
                     callee = this.nonComputedMember(callContext.context, callContext.name);
                 }
             }
-            return callee + "&&" + callee + "(" + args.join(",") + ")";
+            //callee不能篡改this指向，addEnsureSafeFunction排除了call apply等调用形式
+            this.addEnsureSafeFunction(callee);
+            // return callee + "&&" + callee + "(" + args.join(",") + ")";
+            // 函数返回值不能是window
+            return callee + '&&ensureSafeObject(' + callee + '(' + args.join(',') + '))';
         case AST.AssignmentExpression:
             var leftContext = {};
             //aaa.bbb.ccc如果bbb是undefined，在js中会报错，但是在这里不会报错，需要在recurse中传入第三个参数控制
@@ -503,7 +645,24 @@ ASTCompiler.prototype.recurse = function(ast, context, create) {
             } else {
                 leftExpr = this.nonComputedMember(leftContext.context, leftContext.name);
             }
-            return this.assign(leftExpr, this.recurse(ast.right));
+            return this.assign(leftExpr, 'ensureSafeObject(' + this.recurse(ast.right) + ')');
+        case AST.UnaryExpression:
+            //如果ast.argument是undefined，默认设置为0
+            return ast.operator + '(' + this.ifDefined(this.recurse(ast.argument), 0) + ')';
+        case AST.BinaryExpression:
+            // return '(' + this.recurse(ast.left) + ')' +
+            //     ast.operator +
+            //     '(' + this.recurse(ast.right) + ')';
+            if (ast.operator === '+' || ast.operator === '-') {
+                return '(' + this.ifDefined(this.recurse(ast.left), 0) + ')' +
+                    ast.operator +
+                    '(' + this.ifDefined(this.recurse(ast.right), 0) + ')';
+            } else {
+                return '(' + this.recurse(ast.left) + ')' +
+                    ast.operator +
+                    '(' + this.recurse(ast.right) + ')';
+            }
+            break;
     }
 };
 ASTCompiler.prototype.escape = function(value) {
@@ -542,6 +701,59 @@ ASTCompiler.prototype.not = function(e) {
 ASTCompiler.prototype.getHasOwnProperty = function(object, property) {
     return object + '&&(' + this.escape(property) + ' in ' + object + ')';
 };
+ASTCompiler.prototype.addEnsureSafeMemberName = function(expr) {
+    this.state.body.push('ensureSafeMemberName(' + expr + ');');
+};
+ASTCompiler.prototype.addEnsureSafeObject = function(expr) {
+    this.state.body.push('ensureSafeObject(' + expr + ');');
+};
+ASTCompiler.prototype.addEnsureSafeFunction = function(expr) {
+    this.state.body.push('ensureSafeFunction(' + expr + ');');
+};
+ASTCompiler.prototype.ifDefined = function(value, defaultValue) {
+    return 'ifDefined(' + value + ',' + this.escape(defaultValue) + ')';
+};
+function ifDefined(value, defaultValue) {
+    return typeof value === 'undefined' ? defaultValue : value;
+}
+function ensureSafeMemberName(name) {
+    if (name === 'constructor' || name === '__proto__' ||
+        name === '__defineGetter__' || name === '__defineSetter__' ||
+        name === '__lookupGetter__' || name === '__lookupSetter__') {
+        throw 'Attempting to access a disallowed field in Angular expressions!';
+    }
+}
+function ensureSafeObject(obj) {
+    if (obj) {
+        if (obj.document && obj.location && obj.alert && obj.setInterval) {
+            throw 'Referencing window in Angular expressions is disallowed!';
+        } else if (obj.children &&
+            (obj.nodeName || (obj.prop && obj.attr && obj.find))) {
+            throw 'Referencing DOM nodes in Angular expressions is disallowed!';
+        } else if (obj.constructor === obj) {
+            //排除obj是Function构造函数的情况
+            throw 'Referencing Function in Angular expressions is disallowed!';
+        } else if (obj.getOwnPropertyNames || obj.getOwnPropertyDescriptor) {
+            //排除obj是Object对象的情况
+            throw 'Referencing Object in Angular expressions is disallowed!';
+        }
+    }
+    return obj;
+}
+var CALL = Function.prototype.call;
+var APPLY = Function.prototype.apply;
+var BIND = Function.prototype.bind;
+function ensureSafeFunction(obj) {
+    if (obj) {
+        if (obj.constructor === obj) {
+            throw 'Referencing Function in Angular expressions is disallowed!';
+        } else if (obj === CALL || obj === APPLY || obj === BIND) {
+            throw 'Referencing call, apply, or bind in Angular expressions '+
+            'is disallowed!';
+        }
+    }
+    return obj;
+}
 //第四步
 function Parser(lexer) {
     this.lexer = lexer;
